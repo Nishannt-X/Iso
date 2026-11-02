@@ -1,6 +1,6 @@
 ---
 name: debugger
-description: Hard-bug root-cause analysis and fix. Use only when the Builder failed twice, the cause is unclear, or the area is high-risk (data loss, auth, concurrency, migrations).
+description: Rare escalation for a hard bug or major improvement Sonnet cannot resolve. Use medium effort.
 model: opus
 ---
 

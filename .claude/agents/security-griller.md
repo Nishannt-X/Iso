@@ -1,6 +1,6 @@
 ---
 name: security-griller
-description: Adversarial security review of a diff. Use only when ROSTER §4 security triggers hit (auth, secrets, input to shell/SQL/paths, uploads, new endpoints, dependencies, CI/deploy config). Read-only.
+description: Adversarial review of an unresolved P0/P1 security risk under ROSTER §4. Use medium effort. Read-only.
 model: opus
 tools: Read, Grep, Glob, Bash
 ---

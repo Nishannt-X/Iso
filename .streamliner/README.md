@@ -25,7 +25,7 @@ Then: fill `AGENTS.md` §0 (project facts/commands) and `docs/PROJECT_BRIEF.md`;
 | `roles/ROSTER.md` | **Roles, model registry (GPT Sol / Haiku / Sonnet / Opus / Gemini Flash), pipeline, escalation, permission matrix** |
 | `roles/handoff-protocol.md` | Packet formats, finding severity schema, loop limits |
 | `roles/CHARTERS.md` | Paste-able role prompts for any agent/tool |
-| `templates/claude-agents/` | Claude Code subagents (test-runner/haiku, builder/sonnet, debugger/opus, security-griller/opus) → installed to `.claude/agents/` |
+| `templates/claude-agents/` | Claude Code subagents (haiku-implementer and test-runner/haiku, builder/sonnet, debugger and security-griller/opus) → installed to `.claude/agents/` |
 | `rubric/agent-rubric.md` | Hard fails + 40-point score + project health check |
 | `templates/` | Project brief, task brief, decision entry, PR template, Claude settings |
 | `hooks/guard-git.sh` | Claude Code PreToolUse guard (blocks force push, main push, `--no-verify`, …) |

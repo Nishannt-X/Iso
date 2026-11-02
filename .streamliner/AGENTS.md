@@ -27,8 +27,8 @@ Never guess a command. If a field above is blank, find it in the repo or ask.
 - Log durable decisions in `docs/DECISIONS.md`; update `docs/PROJECT_BRIEF.md` if scope changes.
 
 ## 2b. Roles & model routing (all agents) → `.streamliner/roles/ROSTER.md`
-- Every agent has a **role** (Orchestrator, Scout, Researcher, Architect, Plan Griller, Builder, Debugger, Test Runner, Break-it Griller, Reviewer, Security Griller, Scribe). If none is assigned and you're working alone, you are the Builder.
-- Stay in your lane. Only the **Builder/Debugger** edit code and commit/push; Test Runner, Reviewer, Grillers, Researcher, Scout, Architect are **read-only**. Only the **human** merges.
+- Every agent has a **role** (Orchestrator, Scout, Researcher, Architect, Plan Griller, Builder, Haiku Implementer, Debugger, Test Runner, Break-it Griller, Reviewer, Security Griller, Scribe). If none is assigned and you're working alone, you are the Builder.
+- Stay in your lane. Builder/Debugger own code and commits; a Haiku Implementer may edit only assigned files, never commit/push. Test Runner, Reviewer, Grillers, Researcher, Scout, Architect are **read-only**. Only the **human** merges.
 - Hand off with the packets in `.streamliner/roles/handoff-protocol.md`. Escalate models only per ROSTER §4. Review loop max 3 rounds.
 - Judges must not share a model family with the author they judge. Model assignments live only in ROSTER §1.
 
