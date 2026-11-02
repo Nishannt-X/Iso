@@ -221,11 +221,7 @@ export function PackagePage({ v, origin, ctx }: { v: PackageVersion; origin: Dat
         <section class="hero short has-credit" aria-labelledby="pkg-title">
           <Picture photo={hero} sizes="100vw" eager />
           <div class="wrap">
-            <div class="pkg-pills">
-              <span class="pkg-pill">{v.region}</span>
-              <span class="pkg-pill num">{v.packageCode}</span>
-              <span class="pkg-pill copper">{duration(v)}</span>
-            </div>
+            <p class="kicker"><span class="kicker-region">{v.region}</span><span class="sep" aria-hidden="true"> · </span><span class="kicker-code num">{v.packageCode}</span></p>
             <h1 id="pkg-title">{v.title}</h1>
             {v.destinations.length > 0 ? <p class="lede">{v.destinations.join(' · ')}</p> : null}
           </div>
@@ -234,11 +230,7 @@ export function PackagePage({ v, origin, ctx }: { v: PackageVersion; origin: Dat
       ) : (
         <section class="wrap plain-heading" aria-labelledby="pkg-title">
           <div class="message">
-            <div class="pkg-pills">
-              <span class="pkg-pill">{v.region}</span>
-              <span class="pkg-pill num">{v.packageCode}</span>
-              <span class="pkg-pill copper">{duration(v)}</span>
-            </div>
+            <p class="kicker"><span class="kicker-region">{v.region}</span><span class="sep" aria-hidden="true"> · </span><span class="kicker-code num">{v.packageCode}</span></p>
             <h1 id="pkg-title">{v.title}</h1>
             {v.destinations.length > 0 ? <p class="lede">{v.destinations.join(' · ')}</p> : null}
           </div>
@@ -270,10 +262,7 @@ export function PackagePage({ v, origin, ctx }: { v: PackageVersion; origin: Dat
           </dl>
 
           <section class="detail-section" aria-labelledby="itinerary">
-            <div class="section-title-wrap">
-              <span class="section-eyebrow">The Route</span>
-              <h2 id="itinerary">Day by day</h2>
-            </div>
+            <h2 id="itinerary">Day by day</h2>
             <ol class="itinerary" aria-labelledby="itinerary">
               {v.itinerary.map((d) => (
                 <li class="itinerary-day">
@@ -291,20 +280,15 @@ export function PackagePage({ v, origin, ctx }: { v: PackageVersion; origin: Dat
 
           {band ? (
             <figure class="band">
-              <div class="band-frame">
-                <Picture photo={band} sizes="(min-width: 62rem) 46rem, 100vw" />
-              </div>
+              <Picture photo={band} sizes="(min-width: 62rem) 46rem, 100vw" />
               <figcaption class="credit-below"><Credit photo={band} /></figcaption>
             </figure>
           ) : null}
 
           <section class="detail-section" aria-labelledby="included">
-            <div class="section-title-wrap">
-              <span class="section-eyebrow">Clarity of inclusions</span>
-              <h2 id="included">Included and not included</h2>
-            </div>
+            <h2 id="included">Included and not included</h2>
             <div class="two-col">
-              <div class="col-card inclusion-card">
+              <div class="col-group">
                 <h3>Included</h3>
                 {v.inclusions.length > 0 ? (
                   <ul class="list inclusions-list">
@@ -319,7 +303,7 @@ export function PackagePage({ v, origin, ctx }: { v: PackageVersion; origin: Dat
                   <p class="fineprint">Not listed yet.</p>
                 )}
               </div>
-              <div class="col-card exclusion-card">
+              <div class="col-group">
                 <h3>Not included</h3>
                 {v.exclusions.length > 0 ? (
                   <ul class="list exclusions-list">
@@ -338,28 +322,19 @@ export function PackagePage({ v, origin, ctx }: { v: PackageVersion; origin: Dat
           </section>
 
           <section class="detail-section" aria-labelledby="stays">
-            <div class="section-title-wrap">
-              <span class="section-eyebrow">Stays & lodging</span>
-              <h2 id="stays">Where you stay</h2>
-            </div>
-            <div class="stay-card">
-              <p class="stays">
-                {stars ? `${stars} hotels throughout. ` : 'Hotel category not listed. '}
-                Hotel names are not listed for this package yet.
-              </p>
-              <p class="stay-sub">Verified room categories and service standards confirmed before departure.</p>
-            </div>
+            <h2 id="stays">Where you stay</h2>
+            <p class="stays">
+              {stars ? `${stars} hotels throughout. ` : 'Hotel category not listed. '}
+              Hotel names are not listed for this package yet.
+            </p>
           </section>
 
           <section class="detail-section" aria-labelledby="prices">
-            <div class="section-title-wrap">
-              <span class="section-eyebrow">Seasonal schedule</span>
-              <h2 id="prices">Prices by season</h2>
-            </div>
+            <h2 id="prices">Prices by season</h2>
             {v.seasons.length === 0 ? (
               <p class="fineprint">Prices for this package are not published yet.</p>
             ) : (
-              <div class="prices-card">
+              <>
                 <table class="prices">
                   <caption>All prices are {PRICE_BASIS}. {GST_NOTE}.</caption>
                   <thead>
@@ -375,45 +350,31 @@ export function PackagePage({ v, origin, ctx }: { v: PackageVersion; origin: Dat
                     ))}
                   </tbody>
                 </table>
-                <div class="prices-notes">
-                  <p class="fineprint">
-                    GST: pending. Company A has not yet confirmed whether these prices include GST or how it is added.
-                  </p>
-                  {assumedDates ? (
-                    <p class="fineprint">Season dates are given by month. Exact start and end dates are still to be confirmed.</p>
-                  ) : null}
-                  <p class="fineprint">Rates for children and solo travellers are not listed here.</p>
-                </div>
-              </div>
+                <p class="fineprint">
+                  GST: pending. Company A has not yet confirmed whether these prices include GST or how it is added.
+                </p>
+                {assumedDates ? (
+                  <p class="fineprint">Season dates are given by month. Exact start and end dates are still to be confirmed.</p>
+                ) : null}
+                <p class="fineprint">Rates for children and solo travellers are not listed here.</p>
+              </>
             )}
           </section>
         </article>
 
         <aside class="book" aria-label="Price and enquiry">
-          <div class="book-card">
-            <div class="head">
-              {from !== null ? (
-                <>
-                  <span class="from">From</span>
-                  <p class="amount num">{formatInr(from)}</p>
-                  <p class="basis">{PRICE_BASIS} · {GST_NOTE}</p>
-                </>
-              ) : (
-                <p class="amount">Price to be confirmed</p>
-              )}
-            </div>
-            <div class="book-reassurance">
-              <div class="reassurance-item">
-                <span class="r-dot" aria-hidden="true" />
-                <span>Instant enquiry acknowledgement</span>
-              </div>
-              <div class="reassurance-item">
-                <span class="r-dot" aria-hidden="true" />
-                <span>Fixed seasonal rates & per-person clarity</span>
-              </div>
-            </div>
-            <a class="btn" href={enquirePath(v.packageSlug)}>Enquire</a>
+          <div class="head">
+            {from !== null ? (
+              <>
+                <span class="from">From</span>
+                <p class="amount num">{formatInr(from)}</p>
+                <p class="basis">{PRICE_BASIS} · {GST_NOTE}</p>
+              </>
+            ) : (
+              <p class="amount">Price to be confirmed</p>
+            )}
           </div>
+          <a class="btn" href={enquirePath(v.packageSlug)}>Enquire</a>
         </aside>
       </div>
     </Layout>

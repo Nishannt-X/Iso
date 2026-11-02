@@ -12,26 +12,28 @@ describe('Public Package Detail Experience & Editorial Copy', () => {
   const db = resetDatabase(':memory:');
   const app = createApp(db, { siteUrl: SITE });
 
-  test('renders full-bleed credited travel hero with pills, title and lede', async () => {
+  test('renders full-bleed credited travel hero with clean kicker, title and lede without decorative pills', async () => {
     const res = await app.request(`/packages/${KL07_SLUG}`);
     assert.equal(res.status, 200);
     const html = await res.text();
 
     assert.ok(html.includes('class="hero short has-credit"'));
-    assert.ok(html.includes('class="pkg-pills"'));
+    assert.ok(html.includes('class="kicker"'));
     assert.ok(html.includes('PKG-KL-07'));
-    assert.ok(html.includes('6 days, 5 nights'));
     assert.ok(html.includes('Alleppey backwaters'));
     assert.ok(html.includes('Paul Arps'));
+    // Decorative pills removed to eliminate duplication with summary
+    assert.ok(!html.includes('class="pkg-pills"'));
   });
 
-  test('displays at-a-glance summary cards with duration, stays, region, and package code', async () => {
+  test('displays at-a-glance editorial summary with duration, stays, region, and package code', async () => {
     const res = await app.request(`/packages/${KL07_SLUG}`);
     const html = await res.text();
 
     assert.ok(html.includes('class="at-a-glance"'));
     assert.ok(html.includes('class="glance-item"'));
     assert.ok(html.includes('Duration'));
+    assert.ok(html.includes('6 days, 5 nights'));
     assert.ok(html.includes('Stays'));
     assert.ok(html.includes('4-star hotels'));
     assert.ok(html.includes('Region'));
@@ -51,51 +53,51 @@ describe('Public Package Detail Experience & Editorial Copy', () => {
     assert.ok(html.includes('Alleppey to Kochi'));
   });
 
-  test('renders photo band with frame and licence provenance below', async () => {
+  test('renders photo band with clean frame and licence provenance below', async () => {
     const res = await app.request(`/packages/${KL07_SLUG}`);
     const html = await res.text();
 
     assert.ok(html.includes('class="band"'));
-    assert.ok(html.includes('class="band-frame"'));
     assert.ok(html.includes('munnar-tea'));
     assert.ok(html.includes('Ingo Mehling'));
     assert.ok(html.includes('CC BY-SA 4.0'));
   });
 
-  test('renders inclusions and exclusions in two structured cards with item icons', async () => {
+  test('renders inclusions and exclusions in clean two-column editorial lists without card boxes', async () => {
     const res = await app.request(`/packages/${KL07_SLUG}`);
     const html = await res.text();
 
     assert.ok(html.includes('class="two-col"'));
-    assert.ok(html.includes('class="col-card inclusion-card"'));
-    assert.ok(html.includes('class="col-card exclusion-card"'));
     assert.ok(html.includes('Included and not included'));
     assert.ok(html.includes('One night on a houseboat with meals'));
     assert.ok(html.includes('class="item-icon"'));
+    assert.ok(!html.includes('class="col-card'));
   });
 
-  test('renders stay notes without fabricating hotel names', async () => {
+  test('renders stay notes without fabricating hotel names or unsupported service claims', async () => {
     const res = await app.request(`/packages/${KL07_SLUG}`);
     const html = await res.text();
 
-    assert.ok(html.includes('class="stay-card"'));
     assert.ok(html.includes('4-star hotels throughout.'));
     assert.ok(html.includes('Hotel names are not listed for this package yet.'));
+    // Unsupported service claims removed per review finding
+    assert.ok(!html.includes('Verified room categories and service standards'));
+    assert.ok(!html.includes('class="stay-card"'));
   });
 
   test('renders seasonal pricing table with twin-sharing and GST notes', async () => {
     const res = await app.request(`/packages/${KL07_SLUG}`);
     const html = await res.text();
 
-    assert.ok(html.includes('class="prices-card"'));
     assert.match(html, /<caption>All prices are per person, twin sharing\. GST pending\.<\/caption>/);
     assert.match(html, /Peak<\/th><td>October to March<\/td><td class="num">₹32,500<\/td>/);
     assert.match(html, /Monsoon<\/th><td>June to September<\/td><td class="num">₹24,900<\/td>/);
     assert.ok(html.includes('GST: pending'));
     assert.ok(html.includes('Exact start and end dates are still to be confirmed'));
+    assert.ok(!html.includes('class="prices-card"'));
   });
 
-  test('renders exactly one strong Enquire button with reassurance badges', async () => {
+  test('renders exactly one strong Enquire button without misleading reassurance marketing claims', async () => {
     const res = await app.request(`/packages/${KL07_SLUG}`);
     const html = await res.text();
 
@@ -103,8 +105,10 @@ describe('Public Package Detail Experience & Editorial Copy', () => {
     assert.equal(buttons.length, 1);
     assert.ok(html.includes(`href="/enquire?package=${KL07_SLUG}"`));
     assert.ok(html.includes('class="book"'));
-    assert.ok(html.includes('class="book-reassurance"'));
-    assert.ok(html.includes('Instant enquiry acknowledgement'));
+    // Misleading claims removed per review finding:
+    assert.ok(!html.includes('Instant enquiry acknowledgement'));
+    assert.ok(!html.includes('Fixed seasonal rates'));
+    assert.ok(!html.includes('class="book-reassurance"'));
   });
 
   test('bare package fallback renders honestly with no hero class', () => {
