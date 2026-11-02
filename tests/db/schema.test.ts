@@ -101,6 +101,17 @@ describe('I2: version immutability', () => {
   });
 });
 
+describe('version ids are never reused', () => {
+  test('a new version never inherits the id of a deleted draft', () => {
+    const db = freshDb();
+    const p = insertPackage(db, 'P1', 'p-one');
+    const first = insertVersion(db, p, 1, 'draft');
+    run(db, 'DELETE FROM package_versions WHERE id = ?', first);
+    const second = insertVersion(db, p, 1, 'draft');
+    assert.notEqual(second, first);
+  });
+});
+
 describe('I2b: child rows follow the parent', () => {
   test('children of a draft can be inserted, updated and deleted', () => {
     const db = freshDb();

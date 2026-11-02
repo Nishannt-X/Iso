@@ -27,8 +27,10 @@ CREATE TABLE packages (
   CHECK (slug GLOB '[a-z0-9]*' AND slug NOT GLOB '*[^a-z0-9-]*')
 );
 
+-- AUTOINCREMENT: ids are never reused, so a discarded draft's id cannot be inherited by a later
+-- draft and silently accept a stale editor's save (same id, same lock_version).
 CREATE TABLE package_versions (
-  id                        INTEGER PRIMARY KEY,
+  id                        INTEGER PRIMARY KEY AUTOINCREMENT,
   package_id                INTEGER NOT NULL REFERENCES packages(id) ON DELETE RESTRICT,
   version_no                INTEGER NOT NULL CHECK (version_no >= 1),
   status                    TEXT NOT NULL CHECK (status IN ('draft', 'published', 'superseded')),
