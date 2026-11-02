@@ -1,7 +1,8 @@
 import { HOME_HERO, photosFor } from '../domain/photos.js';
 import type { DataOrigin, PackageVersion } from '../domain/packages.js';
 import { Credit, Layout, Picture, SITE_NAME, type PageMeta } from './layout.js';
-import { cleanSummary, duration, formatInr, fromPrice, GST_NOTE, metaDescription, PRICE_BASIS, seasonDates, starLabel } from './format.js';
+import { groupByTheme, themePhoto, type ThemeGroup } from './themes.js';
+import { cleanSummary, duration, formatInr, fromPrice, GST_NOTE, metaDescription, PRICE_BASIS, pluralise, seasonDates, starLabel } from './format.js';
 
 // Server-rendered public pages. JSX output is escaped by Hono; nothing here builds HTML from strings.
 
@@ -28,26 +29,71 @@ function DemoLabel({ origin }: { origin: DataOrigin | undefined }) {
   return <p class="demo">{origin === 'synthetic' ? 'Synthetic demo package' : 'Price from the brief; itinerary is placeholder'}</p>;
 }
 
-function PackageRow({ v, origin }: { v: PackageVersion; origin: DataOrigin | undefined }) {
-  const { hero } = photosFor(v.packageCode);
+function Journey({ v, origin }: { v: PackageVersion; origin: DataOrigin | undefined }) {
   const stars = starLabel(v.starRating);
   return (
-    <li class="row">
-      <figure class="shot">
-        <div class={hero ? 'thumb' : 'thumb none'}>
-          {hero ? <Picture photo={hero} sizes="(min-width: 56rem) 58vw, 100vw" /> : <span>Photo to come</span>}
-        </div>
-        {hero ? <figcaption class="credit-below"><Credit photo={hero} /></figcaption> : null}
-      </figure>
-      <div>
-        <h2><a href={packagePath(v.packageSlug)}>{v.title}</a></h2>
-        <p class="facts">{[duration(v), stars ? `${stars} stays` : null, v.region].filter(Boolean).join(' · ')}</p>
+    <li class="trip" data-origin={origin}>
+      <p class="cell code num"><span class="legend">Code</span>{v.packageCode}</p>
+      <div class="cell what">
+        <h3><a href={packagePath(v.packageSlug)}>{v.title}</a></h3>
+        <p class="route">{v.destinations.join(' · ')}</p>
         <p class="summary">{cleanSummary(v.summary)}</p>
-        <PriceLine seasons={v.seasons} />
         <DemoLabel origin={origin} />
       </div>
+      <p class="cell len">
+        <span class="legend">Length</span>
+        <span>{duration(v)}</span>
+        <span class="sub">{stars ? `${stars} stays` : 'Stay category not listed'}</span>
+      </p>
+      <div class="cell fare">
+        <span class="legend">Fare</span>
+        <PriceLine seasons={v.seasons} />
+      </div>
+      <p class="cell act"><a class="stub" href={enquirePath(v.packageSlug)}>Enquire<span class="sr"> about {v.title}</span></a></p>
     </li>
   );
+}
+
+function ThemeSection({ group, tall, origins }: { group: ThemeGroup<PackageVersion>; tall: boolean; origins: Map<number, DataOrigin> }) {
+  const { theme, items } = group;
+  const photo = theme ? themePhoto(theme) : null;
+  const id = theme ? `theme-${theme.id}` : 'theme-more';
+  return (
+    <section class="theme" aria-labelledby={id}>
+      {photo ? (
+        <figure class={tall ? 'bleed tall' : 'bleed'}>
+          <Picture photo={photo} sizes="100vw" />
+          <figcaption class="credit-strip"><span class="wrap"><Credit photo={photo} /></span></figcaption>
+        </figure>
+      ) : null}
+      <div class="wrap">
+        <div class="theme-head">
+          <h2 id={id}>{theme ? theme.title : 'More journeys'}</h2>
+          {theme ? <p>{theme.blurb}</p> : null}
+        </div>
+        <ul class="board">
+          <li class="board-head" aria-hidden="true">
+            <span>Code</span><span>Journey</span><span>Length</span><span>Fare</span><span />
+          </li>
+          {items.map((v) => (
+            <Journey v={v} origin={origins.get(v.packageId)} />
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+/** Facts about the live packages for the ticket stub. Nothing here is invented: it is counted from the data. */
+function catalogueFacts(packages: PackageVersion[]) {
+  const days = packages.map((v) => v.days);
+  const fares = packages.map((v) => fromPrice(v.seasons)).filter((n): n is number => n !== null);
+  const [shortest, longest] = [Math.min(...days), Math.max(...days)];
+  return {
+    count: packages.length,
+    length: shortest === longest ? pluralise(shortest, 'day') : `${shortest} to ${pluralise(longest, 'day')}`,
+    lowestFare: fares.length > 0 ? Math.min(...fares) : null,
+  };
 }
 
 export function HomePage({ packages, origins, ctx }: { packages: PackageVersion[]; origins: Map<number, DataOrigin>; ctx: PageContext }) {
@@ -58,21 +104,40 @@ export function HomePage({ packages, origins, ctx }: { packages: PackageVersion[
     siteUrl: ctx.siteUrl,
     image: HOME_HERO,
   };
+  const facts = packages.length > 0 ? catalogueFacts(packages) : null;
+  const groups = groupByTheme(packages);
   return (
     <Layout meta={meta} overImage>
-      <section class="hero has-credit" aria-labelledby="home-title">
-        <Picture photo={HOME_HERO} sizes="100vw" eager class="low" />
-        <div class="wrap">
-          <h1 id="home-title">Kerala and South India, from Kochi</h1>
-          <p class="lede">Holiday packages for families, honeymooners and groups, with every day laid out and every price stated per person.</p>
-          <a class="go" href="#packages">See the packages</a>
+      <section class="cover" aria-labelledby="home-title">
+        <div class="cover-photo"><Picture photo={HOME_HERO} sizes="100vw" eager class="low" /></div>
+        <div class="wrap cover-in">
+          <div class="ticket">
+            <div class="ticket-main">
+              <h1 id="home-title">Kerala and South India, from Kochi</h1>
+              <p class="lede">Holiday packages for families, honeymooners and groups, with every day laid out and every price stated per person.</p>
+            </div>
+            <div class="ticket-stub">
+              {facts ? (
+                <dl class="stub-facts">
+                  <div><dt>Journeys</dt><dd class="num">{facts.count}</dd></div>
+                  <div><dt>Length</dt><dd class="num">{facts.length}</dd></div>
+                  {facts.lowestFare !== null ? (
+                    <div><dt>Fares from</dt><dd class="num">{formatInr(facts.lowestFare)}</dd></div>
+                  ) : null}
+                </dl>
+              ) : null}
+              {facts ? <p class="stub-basis">{PRICE_BASIS} · {GST_NOTE}</p> : null}
+              <a class="btn" href="#packages">See the journeys</a>
+            </div>
+          </div>
         </div>
-        <p class="credit"><Credit photo={HOME_HERO} /></p>
+        <p class="credit-strip"><span class="wrap"><Credit photo={HOME_HERO} /></span></p>
       </section>
+
       <section class="section" id="packages" aria-labelledby="packages-title">
         <div class="wrap">
           <div class="section-head">
-            <h2 id="packages-title">Packages</h2>
+            <h2 id="packages-title">Journeys</h2>
             {packages.length > 0 ? <p class="count">{packages.length} available</p> : null}
           </div>
           {packages.length === 0 ? (
@@ -82,13 +147,36 @@ export function HomePage({ packages, origins, ctx }: { packages: PackageVersion[
               <p class="notice">
                 Prices are per person on twin sharing. GST is pending: Company A has not yet confirmed whether it is included or how it is charged.
               </p>
-              <ul class="rows">
-                {packages.map((v) => (
-                  <PackageRow v={v} origin={origins.get(v.packageId)} />
-                ))}
-              </ul>
+              <p class="notice rules">
+                <span><span class="rule-sample solid" aria-hidden="true" />Solid rule: price from Company A&rsquo;s brief.</span>
+                <span><span class="rule-sample dashed" aria-hidden="true" />Dashed rule: demo package with placeholder content.</span>
+              </p>
             </>
           )}
+        </div>
+        {groups.map((group, i) => (
+          <ThemeSection group={group} tall={i === 0} origins={origins} />
+        ))}
+      </section>
+
+      <section class="section how" id="how" aria-labelledby="how-title">
+        <div class="wrap">
+          <h2 id="how-title">How it works</h2>
+          <ol class="legs">
+            <li>
+              <span class="leg num">1</span>
+              <div><h3>Choose a journey</h3><p>Every journey lists its days, what is included and what is not, and a price for each season.</p></div>
+            </li>
+            <li>
+              <span class="leg num">2</span>
+              <div><h3>Check what the price means</h3><p>Fares are per person on twin sharing. GST is pending. Rates for children and solo travellers are not listed.</p></div>
+            </li>
+            <li>
+              <span class="leg num">3</span>
+              <div><h3>Send an enquiry</h3><p>Tell us who is travelling, when, and your budget. A Company A consultant will read it and reply to you personally.</p></div>
+            </li>
+          </ol>
+          <p class="fineprint">Demo build: an enquiry sent here is saved in a mock outbox, and nothing is sent to any email address or phone.</p>
         </div>
       </section>
     </Layout>
