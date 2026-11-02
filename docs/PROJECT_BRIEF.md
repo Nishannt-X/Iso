@@ -27,7 +27,7 @@ The owner expanded scope to the full selected brief after S4. Work remains on `f
 | S4 | Screens 5–6 (staff login, inbox), sessions, CSRF, role checks | this branch |
 | S5 | AI extraction (live Google Gemini API, labelled rules fallback), ranking, drafting, price guard, screen 7 | this branch; live path awaits a private key for verification |
 | S6 | Screen 8 (package editor, optimistic lock, publish, restore, history, preview) | this branch |
-| S7 | Full MUST HAVE depth: destination/search/map, blog CMS, package scheduling/duplication, quote PDF/link, additional enquiry channels and editor role | planned |
+| S7 | Full MUST HAVE depth: destination/search/map, blog CMS, package scheduling/duplication, quote PDF/link, additional enquiry channels and editor role | search, duplication and scheduling on this branch; remainder planned |
 | S8 | States, phone and accessibility pass, performance, screenshots | planned |
 | S9 | TDD, `deployment.md`, DECISIONS, rubric, ZIP | planned |
 

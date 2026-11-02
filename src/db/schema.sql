@@ -374,4 +374,17 @@ CREATE TABLE enquiry_analysis (
   accepted_at TEXT
 );
 
-PRAGMA user_version = 4;
+CREATE TABLE package_publication_schedule (
+  package_id INTEGER PRIMARY KEY REFERENCES packages(id) ON DELETE CASCADE,
+  draft_id INTEGER NOT NULL REFERENCES package_versions(id),
+  publish_at TEXT NOT NULL,
+  note TEXT NOT NULL,
+  expected_lock_version INTEGER NOT NULL,
+  scheduled_by INTEGER NOT NULL REFERENCES staff_users(id),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'published', 'failed', 'cancelled')),
+  error TEXT,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+CREATE INDEX ix_publication_due ON package_publication_schedule(status, publish_at);
+
+PRAGMA user_version = 5;

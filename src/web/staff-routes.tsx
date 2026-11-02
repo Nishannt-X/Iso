@@ -6,6 +6,7 @@ import { get, type DatabaseSync } from '../db/db.js';
 import { acceptAnalysis, analyseEnquiry, getAnalysis, type ExtractedFields } from '../domain/analysis.js';
 import { emptyPackageForm, formFromBody, formFromVersion, parsePackageForm } from '../domain/package-form.js';
 import { createPackage, DomainError, listPackageHistory, listPackagesForStaff, publish, restoreVersion, saveDraft, type PackageAdminRow } from '../domain/packages.js';
+import { cancelPublication, getPublicationSchedule, schedulePublication } from '../domain/publication-schedule.js';
 import { RateLimiter } from '../domain/rate-limit.js';
 import {
   authenticate, csrfMatches, endSession, listAssignable, resolveSession, startSession, type StaffSession, type StaffUser,
@@ -301,7 +302,7 @@ export function registerStaffRoutes(app: Hono, db: DatabaseSync, ctx: PageContex
     raw && ID.test(raw) ? listPackagesForStaff(db).find((p) => p.id === Number(raw)) : undefined;
   const packageMissing = (c: Context<StaffEnv>) => message(c, 404, 'Package not found', 'That package does not exist.', sessionViewer(c), { href: '/staff/packages', text: 'All packages' });
   const packageHistory = (c: Context<StaffEnv>, row: PackageAdminRow, problem?: string, done?: string, status: 200 | ErrorStatus = 200) =>
-    page(c, <PackageHistoryPage ctx={ctx} viewer={sessionViewer(c)} row={row} history={listPackageHistory(db, row.id)} problem={problem} done={done} />, status);
+    page(c, <PackageHistoryPage ctx={ctx} viewer={sessionViewer(c)} row={row} history={listPackageHistory(db, row.id)} schedule={getPublicationSchedule(db, row.id)} problem={problem} done={done} />, status);
   const cmsErrorStatus = (err: DomainError): ErrorStatus => DOMAIN_STATUS[err.code];
   const parseLock = (body: Record<string, unknown>): number => {
     const raw = text(body, 'lock');
@@ -332,7 +333,7 @@ export function registerStaffRoutes(app: Hono, db: DatabaseSync, ctx: PageContex
     const row = packageRow(c.req.param('id'));
     if (!row) return packageMissing(c);
     const done = c.req.query('done');
-    const messages: Record<string, string> = { created: 'Package draft created.', saved: 'Draft saved.', published: 'Version published. The public page is updated.', restored: 'A private draft was restored.' };
+    const messages: Record<string, string> = { created: 'Package draft created.', saved: 'Draft saved.', published: 'Version published. The public page is updated.', restored: 'A private draft was restored.', scheduled: 'Publication scheduled.', cancelled: 'Scheduled publication cancelled.' };
     return packageHistory(c, row, undefined, done ? messages[done] : undefined);
   });
   staff.get('/packages/:id/edit', adminOnly, (c) => {
@@ -400,11 +401,33 @@ export function registerStaffRoutes(app: Hono, db: DatabaseSync, ctx: PageContex
       const note = text(body, 'note').trim();
       if (!note || note.length > 300) throw new DomainError('validation', 'Enter a short note describing the change.');
       publish(db, { draftId: row.draft.id, actorId: c.get('session').user.id, note, expectedLockVersion: parseLock(body) });
+      const schedule = getPublicationSchedule(db, row.id);
+      if (schedule?.status === 'pending') cancelPublication(db, row.id, c.get('session').user.id);
       return c.redirect(`/staff/packages/${row.id}?done=published`, 303);
     } catch (err) {
       if (!(err instanceof DomainError)) throw err;
       return packageHistory(c, packageRow(c.req.param('id')) ?? row, [err.message, ...err.issues].join(' '), undefined, cmsErrorStatus(err));
     }
+  });
+  staff.post('/packages/:id/schedule', adminOnly, async (c) => {
+    const row = packageRow(c.req.param('id'));
+    if (!row) return packageMissing(c);
+    const body = await c.req.parseBody();
+    try {
+      const local = text(body, 'publishAt');
+      if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(local)) throw new DomainError('validation', 'Choose a valid India date and time.');
+      schedulePublication(db, { packageId: row.id, publishAt: `${local}:00+05:30`, note: text(body, 'note'), actorId: c.get('session').user.id, expectedLockVersion: parseLock(body) }, options.now());
+      return c.redirect(`/staff/packages/${row.id}?done=scheduled`, 303);
+    } catch (err) {
+      if (!(err instanceof DomainError)) throw err;
+      return packageHistory(c, row, [err.message, ...err.issues].join(' '), undefined, cmsErrorStatus(err));
+    }
+  });
+  staff.post('/packages/:id/schedule/cancel', adminOnly, (c) => {
+    const row = packageRow(c.req.param('id'));
+    if (!row) return packageMissing(c);
+    try { cancelPublication(db, row.id, c.get('session').user.id); return c.redirect(`/staff/packages/${row.id}?done=cancelled`, 303); }
+    catch (err) { if (!(err instanceof DomainError)) throw err; return packageHistory(c, row, err.message, undefined, cmsErrorStatus(err)); }
   });
   staff.post('/packages/:id/restore/:version', adminOnly, async (c) => {
     const row = packageRow(c.req.param('id'));

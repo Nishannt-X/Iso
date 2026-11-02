@@ -1,5 +1,6 @@
 import type { PackageForm } from '../domain/package-form.js';
 import type { PackageAdminRow, PackageVersion } from '../domain/packages.js';
+import type { PublicationSchedule } from '../domain/publication-schedule.js';
 import type { PageContext } from './pages.js';
 import { CsrfField, StaffShell, type Viewer } from './staff-pages.js';
 
@@ -20,7 +21,7 @@ export function PackageListPage(props: { ctx: PageContext; viewer: Viewer; rows:
 }
 
 export function PackageHistoryPage(props: {
-  ctx: PageContext; viewer: Viewer; row: PackageAdminRow; history: PackageVersion[]; problem?: string; done?: string;
+  ctx: PageContext; viewer: Viewer; row: PackageAdminRow; history: PackageVersion[]; schedule: PublicationSchedule | null; problem?: string; done?: string;
 }) {
   const { row, viewer } = props;
   return <StaffShell ctx={props.ctx} viewer={viewer} title={row.code} path={path(row.id)} section="packages">
@@ -46,6 +47,13 @@ export function PackageHistoryPage(props: {
             <div class="field"><label for="publish-note">What changed?</label><input id="publish-note" name="note" maxlength={300} required placeholder="For example: updated monsoon price" /></div>
             <button class="btn" type="submit">Publish this version</button>
           </form>
+          {props.schedule?.status === 'pending' ? <div class="banner" role="status"><p>Scheduled for {new Date(props.schedule.publishAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' })} IST. If this draft changes, the scheduled publication will fail safely.</p><form method="post" action={`${path(row.id)}/schedule/cancel`}><CsrfField token={viewer.csrfToken} /><button class="btn secondary" type="submit">Cancel schedule</button></form></div> : <form method="post" action={`${path(row.id)}/schedule`} class="form cms-publish">
+            <CsrfField token={viewer.csrfToken} /><input type="hidden" name="lock" value={row.draft.lockVersion} />
+            <div class="field"><label for="publish-at">Publish later (India time)</label><input id="publish-at" type="datetime-local" name="publishAt" required /></div>
+            <div class="field"><label for="schedule-note">Publish note</label><input id="schedule-note" name="note" maxlength={300} required /></div>
+            <button class="btn secondary" type="submit">Schedule publication</button>
+          </form>}
+          {props.schedule?.status === 'failed' ? <p class="error-summary" role="alert">Scheduled publication failed: {props.schedule.error}. Review and schedule again.</p> : null}
         </> : row.live ? <>
           <p>The current public version is {row.live.versionNo}. Start a private copy to make changes.</p>
           <form method="post" action={`${path(row.id)}/revise`}><CsrfField token={viewer.csrfToken} /><button class="btn" type="submit">Start a revision</button></form>

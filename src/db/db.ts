@@ -19,7 +19,7 @@ export function initSchema(db: DatabaseSync): void {
 }
 
 /** Bumped whenever schema.sql changes; a database built by an older schema must be reset. */
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 export function schemaVersion(db: DatabaseSync): number {
   return get<{ user_version: number }>(db, 'PRAGMA user_version')?.user_version ?? 0;

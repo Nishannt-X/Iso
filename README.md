@@ -2,7 +2,7 @@
 
 Package catalogue with seasonal pricing, versioned package content for staff, and AI-assisted enquiry triage with human-approved replies. Built in slices; see `docs/PROJECT_BRIEF.md` for scope, assumptions and status, and `docs/DECISIONS.md` for why.
 
-**Status:** the public catalogue, enquiry flow, staff inbox, package CMS, and AI-assisted analysis are implemented. Package edits stay private until an admin publishes them. The staff workspace can analyse an enquiry with Google Gemini API when configured, or visibly use local extraction rules, then a consultant corrects and accepts the proposal before editing and approving a mock reply. The wider blog, quote and multichannel features remain in progress. No message is actually sent.
+**Status:** the public catalogue, enquiry flow, staff inbox, package CMS, and AI-assisted analysis are implemented. Package edits stay private until an admin publishes them, and a ready draft can be scheduled for automatic publication. The staff workspace can analyse an enquiry with Google Gemini API when configured, or visibly use local extraction rules, then a consultant corrects and accepts the proposal before editing and approving a mock reply. The wider blog, quote and multichannel features remain in progress. No message is actually sent.
 
 ## Quickstart
 Requires Node `>=22.13` (see `.nvmrc`).
@@ -45,4 +45,4 @@ On public site URLs (non-localhost), the known demo password (`demo-staff-passwo
 `dev`, `build`, `start`, `test`, `lint`, `typecheck`, `db:reset`.
 
 ## Data
-The two sample packages come from the client brief (`docs/CLIENT_BRIEF.md`): PKG-KL-07 (published, Peak ₹32,500, Monsoon ₹24,900) and PKG-SI-12 (draft, All year ₹18,750). Season day boundaries, `nights`, itineraries and the five `SYN-*` packages are assumed or synthetic and labelled so in the data. No GST, child or single-supplement rate is assumed: quotes that need them are reported as `partial`. The seed also adds the brief's sample enquiry (synthetic contact, labelled `seed_sample`). The database schema is version 4; starting the server migrates a version 3 database without deleting it.
+The two sample packages come from the client brief (`docs/CLIENT_BRIEF.md`): PKG-KL-07 (published, Peak ₹32,500, Monsoon ₹24,900) and PKG-SI-12 (draft, All year ₹18,750). Season day boundaries, `nights`, itineraries and the five `SYN-*` packages are assumed or synthetic and labelled so in the data. No GST, child or single-supplement rate is assumed: quotes that need them are reported as `partial`. The seed also adds the brief's sample enquiry (synthetic contact, labelled `seed_sample`). The database schema is version 5; starting the server migrates a version 3 or 4 database without deleting it.

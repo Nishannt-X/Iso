@@ -128,3 +128,10 @@
 - **Consequences:** The local fallback and approval path have focused tests. The live Gemini API path remains unverified until a private key is supplied in the runtime environment. The suggested reply opening rejects model text containing numbers or money terms; quoted prices always come from package records.
 - **Decided by:** Human owner (provider, test routing), Builder (implementation) · **Related:** `src/domain/analysis.ts`, `src/web/package-cms-pages.tsx`
 
+## 2026-11-02 · Scheduled package publication
+- **Status:** accepted
+- **Context:** The full brief includes package scheduling; a draft must never become public if it changed after an editor scheduled it.
+- **Decision:** Store one schedule per package with the exact draft ID and lock version. A server timer checks due schedules each minute and publishes through the existing transaction. A changed or invalid draft is marked failed and stays private. Times entered in the CMS are explicitly India time. Manual publication cancels a pending schedule.
+- **Consequences:** A running server is needed for on-time publication; after a restart, due schedules run at startup. The scheduler is safe for a single SQLite-backed instance. A focused test covers due versus early publication.
+- **Decided by:** Builder · **Related:** `src/domain/publication-schedule.ts`
+
