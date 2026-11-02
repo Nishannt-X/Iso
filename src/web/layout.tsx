@@ -86,6 +86,7 @@ export function Layout(props: { meta: PageMeta; overImage?: boolean; hasBook?: b
                 <a href="/destinations">Destinations</a>
                 <a href="/journal">Journal</a>
                 <a href="/#how">How it works</a>
+                <a href="/staff/login" class="nav-staff-link">Staff portal</a>
               </nav>
             )}
           </div>
@@ -102,6 +103,7 @@ export function Layout(props: { meta: PageMeta; overImage?: boolean; hasBook?: b
                     <a href="/destinations">Destinations</a>
                     <a href="/journal">Journal</a>
                     <a href="/#how">How it works</a>
+                    <a href="/staff/login" rel="nofollow">Staff sign in →</a>
                   </nav>
                 </div>
                 <p>

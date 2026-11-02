@@ -53,6 +53,9 @@ p{text-wrap:pretty}
 .site-head nav{display:flex;gap:1.5rem}
 .site-head nav a{font-size:.9375rem;text-decoration:none;padding:.5rem 0}
 .site-head nav a:hover{text-decoration:underline}
+.nav-staff-link{font-size:.8125rem!important;opacity:.9;padding:.25rem .75rem!important;border:1px solid currentColor;border-radius:9999px;transition:all .18s var(--ease)}
+.nav-staff-link:hover{opacity:1;background:rgba(255,255,255,.15);text-decoration:none!important}
+.site-head:not(.onimage) .nav-staff-link:hover{background:var(--surface-warm)}
 @media(max-width:40rem){.site-head .wrap{flex-wrap:wrap;gap:.5rem}.site-head nav{width:100%;justify-content:space-between;gap:.5rem}.site-head nav a{font-size:.875rem}}
 .onimage{position:absolute;inset:0 0 auto 0;color:#fff;background:linear-gradient(to bottom,rgba(5,38,34,.7),transparent)}
 .onimage .wrap{padding-top:0}
