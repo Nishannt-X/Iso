@@ -17,7 +17,7 @@ npm test
 `node:sqlite` is experimental in Node 22 and prints a one-line warning; that is expected.
 
 ## Routes
-`/` home and package list · `/packages/:slug` package detail · `GET /enquire?package=<slug>` the enquiry form for a live package, `POST /enquire` to send it · `/enquiry/received/:token` acknowledgement and status (reached only by the unguessable link; noindex) · `/staff/login` staff sign-in · `/staff/inbox` triage queue · `/staff/enquiries/:id` enquiry workspace with Analysis · `/staff/packages` admin package CMS · `/staff/activity` admin audit log · `/sitemap.xml` · `/robots.txt` · `/healthz` · `/assets/*` photos and font. A trailing slash redirects (301) to the clean URL; unknown paths and unpublished packages return a 404 page.
+`/` home · `/packages` published-package search · `/packages/:slug` package detail · `GET /enquire?package=<slug>` the enquiry form for a live package, `POST /enquire` to send it · `/enquiry/received/:token` acknowledgement and status (reached only by the unguessable link; noindex) · `/staff/login` staff sign-in · `/staff/inbox` triage queue · `/staff/enquiries/:id` enquiry workspace with Analysis · `/staff/packages` admin package CMS, including private duplication · `/staff/activity` admin audit log · `/sitemap.xml` · `/robots.txt` · `/healthz` · `/assets/*` photos and font. A trailing slash redirects (301) to the clean URL; unknown paths and unpublished packages return a 404 page.
 
 ## Staff accounts
 The three demo staff accounts (one admin, two consultants) use synthetic identities on the reserved `.invalid` domain:

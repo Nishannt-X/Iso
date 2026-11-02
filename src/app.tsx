@@ -6,10 +6,11 @@ import { secureHeaders } from 'hono/secure-headers';
 import { trimTrailingSlash } from 'hono/trailing-slash';
 import { get, type DatabaseSync } from './db/db.js';
 import { getLiveVersionBySlug, listDataOrigins, listLiveVersions } from './domain/packages.js';
+import { cleanText } from './domain/enquiries.js';
 import { PHOTO_FILE_PATTERN } from './domain/photos.js';
 import { DEFAULT_LIMITS, registerEnquiryRoutes, type EnquiryLimits } from './web/enquiry-routes.js';
 import { DEFAULT_LOGIN_LIMITS, registerStaffRoutes, type LoginLimits } from './web/staff-routes.js';
-import { HomePage, MessagePage, PackagePage, packagePath, type PageContext } from './web/pages.js';
+import { HomePage, MessagePage, PackagePage, PackageSearchPage, packagePath, type PageContext } from './web/pages.js';
 
 // Public site (slice S2): server-rendered home/list and package detail, plus sitemap, robots and 404.
 // Slice S3 adds the enquiry flow (src/web/enquiry-routes.tsx): the form behind every Enquire button and the status page.
@@ -74,6 +75,13 @@ export function createApp(db: DatabaseSync, options: AppOptions = {}): Hono {
 
   app.get('/', (c) => c.html(doc(<HomePage packages={listLiveVersions(db)} origins={listDataOrigins(db)} ctx={ctx} />)));
 
+  app.get('/packages', (c) => {
+    const raw = c.req.query('q') ?? '';
+    const query = cleanText(raw);
+    if (query.length > 80) return c.html(doc(<MessagePage title="Search is too long" body="Keep your search to 80 characters or fewer." ctx={ctx} path="/packages" />), 400);
+    return c.html(doc(<PackageSearchPage packages={listLiveVersions(db)} origins={listDataOrigins(db)} ctx={ctx} query={query} />));
+  });
+
   app.get('/packages/:slug', (c) => {
     const slug = c.req.param('slug');
     const version = SLUG.test(slug) ? getLiveVersionBySlug(db, slug) : undefined;
@@ -110,6 +118,7 @@ export function createApp(db: DatabaseSync, options: AppOptions = {}): Hono {
   app.get('/sitemap.xml', (c) => {
     const urls = [
       { loc: `${ctx.siteUrl}/`, lastmod: null as string | null },
+      { loc: `${ctx.siteUrl}/packages`, lastmod: null as string | null },
       ...listLiveVersions(db).map((v) => ({ loc: `${ctx.siteUrl}${packagePath(v.packageSlug)}`, lastmod: v.publishedAt })),
     ];
     const body = urls

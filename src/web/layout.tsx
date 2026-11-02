@@ -81,7 +81,7 @@ export function Layout(props: { meta: PageMeta; overImage?: boolean; hasBook?: b
             <a class="brand" href={props.brandHref ?? '/'}>{SITE_NAME}</a>
             {props.nav ?? (
               <nav aria-label="Primary">
-                <a href="/#packages">All packages</a>
+                <a href="/packages">All packages</a>
               </nav>
             )}
           </div>

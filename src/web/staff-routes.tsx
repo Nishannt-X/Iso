@@ -374,6 +374,23 @@ export function registerStaffRoutes(app: Hono, db: DatabaseSync, ctx: PageContex
     restoreVersion(db, { versionId: row.live.id, actorId: c.get('session').user.id });
     return c.redirect(`/staff/packages/${row.id}/edit`, 303);
   });
+  staff.post('/packages/:id/duplicate', adminOnly, async (c) => {
+    const row = packageRow(c.req.param('id'));
+    if (!row) return packageMissing(c);
+    const source = row.live ?? row.draft;
+    if (!source) return packageHistory(c, row, 'This package has no version to copy.', undefined, 409);
+    const body = await c.req.parseBody();
+    try {
+      const code = text(body, 'code').trim();
+      const slug = text(body, 'slug').trim();
+      if (get(db, 'SELECT 1 FROM packages WHERE code = ? OR slug = ?', code, slug)) throw new DomainError('validation', 'That package code or URL is already in use.');
+      const created = createPackage(db, { code, slug, dataOrigin: 'synthetic', actorId: c.get('session').user.id, content: source, changeNote: `Private copy of ${row.code}, version ${source.versionNo}.` });
+      return c.redirect(`/staff/packages/${created.packageId}?done=created`, 303);
+    } catch (err) {
+      if (!(err instanceof DomainError)) throw err;
+      return packageHistory(c, row, [err.message, ...err.issues].join(' '), undefined, cmsErrorStatus(err));
+    }
+  });
   staff.post('/packages/:id/publish', adminOnly, async (c) => {
     const row = packageRow(c.req.param('id'));
     if (!row) return packageMissing(c);

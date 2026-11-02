@@ -70,6 +70,14 @@ figcaption.credit-below a{color:inherit}
 .section-head h2{font-size:clamp(1.75rem,3vw,2.25rem)}
 .count{color:var(--muted);font-size:.9375rem}
 .notice{max-width:46rem;color:var(--muted);font-size:.9375rem;margin-bottom:clamp(2.5rem,6vw,4rem)}
+.package-search{margin:0 0 clamp(2.5rem,5vw,4rem);max-width:39rem}
+.package-search label{display:block;font-size:.9rem;font-weight:500;margin-bottom:.5rem}
+.package-search>div{display:flex;gap:.6rem}
+.package-search input{min-width:0;flex:1;border:1px solid var(--line);background:var(--surface);border-radius:.25rem;padding:.7rem 1rem;font:inherit}
+.package-search .btn{min-width:7rem}
+.search-title{font-size:clamp(2.25rem,5vw,3.75rem);margin:.3rem 0 2rem}
+.eyebrow{text-transform:uppercase;letter-spacing:.15em;color:var(--teal);font-size:.8rem;font-weight:600}
+@media(max-width:28rem){.package-search>div{flex-direction:column}.package-search .btn{width:100%}}
 .rows{display:grid;gap:clamp(3rem,7vw,5.5rem)}
 .row{position:relative;display:grid;gap:1.25rem 3rem;align-items:center}
 @media(min-width:56rem){.row{grid-template-columns:minmax(0,7fr) minmax(0,5fr)}.row:nth-child(even) .shot{order:2}}

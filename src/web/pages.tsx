@@ -76,6 +76,7 @@ export function HomePage({ packages, origins, ctx }: { packages: PackageVersion[
             <h2 id="packages-title">Packages</h2>
             {packages.length > 0 ? <p class="count">{packages.length} available</p> : null}
           </div>
+          <form action="/packages" method="get" class="package-search"><label for="home-search">Find a place or experience</label><div><input id="home-search" name="q" type="search" maxlength={80} placeholder="Try Munnar or houseboat" /><button class="btn" type="submit">Search</button></div></form>
           {packages.length === 0 ? (
             <p class="empty">No packages are published yet. Please check back soon.</p>
           ) : (
@@ -94,6 +95,20 @@ export function HomePage({ packages, origins, ctx }: { packages: PackageVersion[
       </section>
     </Layout>
   );
+}
+
+export function PackageSearchPage({ packages, origins, ctx, query }: { packages: PackageVersion[]; origins: Map<number, DataOrigin>; ctx: PageContext; query: string }) {
+  const needle = query.toLocaleLowerCase('en-IN');
+  const matches = needle ? packages.filter((v) => [v.title, v.region, v.summary, ...v.destinations, ...v.tags].some((x) => x.toLocaleLowerCase('en-IN').includes(needle))) : packages;
+  const meta: PageMeta = { title: 'Explore holiday packages | Kochi Tours', description: 'Explore Kerala and South India holiday packages by destination and experience.', path: '/packages', siteUrl: ctx.siteUrl, noindex: Boolean(query) };
+  return <Layout meta={meta}>
+    <section class="section"><div class="wrap">
+      <p class="eyebrow">Explore</p><h1 class="search-title">Find your next journey</h1>
+      <form action="/packages" method="get" class="package-search"><label for="package-search">Destination or experience</label><div><input id="package-search" name="q" type="search" value={query} maxlength={80} placeholder="Try Munnar or houseboat" /><button class="btn" type="submit">Search</button></div></form>
+      <div class="section-head"><h2>{query ? `Results for “${query}”` : 'All packages'}</h2><p class="count">{matches.length} {matches.length === 1 ? 'package' : 'packages'}</p></div>
+      {matches.length ? <ul class="rows">{matches.map((v) => <PackageRow v={v} origin={origins.get(v.packageId)} />)}</ul> : <div class="empty"><p>No published package matches that search.</p><a class="link" href="/packages">See all packages</a></div>}
+    </div></section>
+  </Layout>;
 }
 
 export function PackagePage({ v, origin, ctx, previewPackageId }: { v: PackageVersion; origin: DataOrigin | undefined; ctx: PageContext; previewPackageId?: number }) {

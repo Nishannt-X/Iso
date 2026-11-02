@@ -30,6 +30,12 @@ export function PackageHistoryPage(props: {
       <p class="lede">{row.code} · /packages/{row.slug}</p>
       {props.problem ? <div class="error-summary" role="alert"><h2>Could not make that change</h2><p>{props.problem}</p></div> : null}
       {props.done ? <p class="banner" role="status">{props.done}</p> : null}
+      <details class="panel cms-duplicate"><summary>Duplicate this package</summary><p class="hint">Create a separate private draft from the current public version. Give it a new code and URL.</p>
+        <form method="post" action={`${path(row.id)}/duplicate`} class="form"><CsrfField token={viewer.csrfToken} />
+          <div class="cms-fields"><div class="field"><label for="duplicate-code">New package code</label><input id="duplicate-code" name="code" maxlength={40} required placeholder="PKG-KL-09" /></div>
+          <div class="field"><label for="duplicate-slug">New URL slug</label><input id="duplicate-slug" name="slug" maxlength={100} required placeholder="kerala-family-holiday" /></div></div>
+          <button class="btn secondary" type="submit">Create private copy</button></form>
+      </details>
       <section class="panel cms-actions" aria-labelledby="draft-title">
         <h2 id="draft-title">Working draft</h2>
         {row.draft ? <>
