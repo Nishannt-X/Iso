@@ -2,50 +2,87 @@
 
 > Source of truth for scope. Agents read this first. Update when scope changes (note why in DECISIONS.md).
 
-- **Name:** Client product build (problem statement pending)
-- **One-line purpose:** Build a polished, working core slice of the selected client problem statement.
-- **Users / who benefits:** To be identified from the selected problem statement.
+- **Name:** Company A Kochi tour operator (Problem 2)
+- **One-line purpose:** Let travellers browse tour packages and send an enquiry, and let staff manage package content (versioned) and triage enquiries with AI-assisted, human-approved replies.
+- **Users / who benefits:** Travellers (public, no login); Company A staff with two roles: `agent` (triage enquiries) and `admin` (also create, edit and publish packages).
 - **Owner / approver of merges:** Human project owner.
 
 ## Goal & success criteria (verifiable)
 1. The selected problem statement's CORE BUILD and main flows work end to end on realistic synthetic sample data.
-2. The product has a frontend, backend, database, sign-in, and roles if the selected brief has multiple user kinds.
+2. The product has a frontend, backend, database, sign-in, and roles (staff only: `admin`, `agent`).
 3. AI or automation works in practice, including wrong or uncertain outcomes; the UI supports phone layouts and loading, empty, and error states.
 4. Important logic has tests, inputs are validated, access is controlled, and no secrets or real personal data are committed.
 5. Submission is one ZIP of at most 25 MB containing exactly a TDD (PDF or Word) and `deployment.md`; the TDD begins with the public GitHub URL and includes a live app URL if deployed.
 
 ## In scope
-- The selected statement's CORE BUILD and the flows needed to demonstrate it.
-- A designed UI, realistic synthetic demo data, functional AI or automation, security basics, and reviewer-ready local setup.
-- TDD: architecture and rationale, data model, flows, AI behavior, key screen decisions, cuts and next steps. Label every assumption.
-- `deployment.md`: local run steps, deployment method, environment variable names only, and demo login details.
+The core slice, delivered in slices on one branch (`feat/kochi-tours-core`). Status in brackets.
+
+| Slice | Content | Status |
+|---|---|---|
+| S0 | Scope docs, scaffold, `node:sqlite` spike, thin `GET /` | this branch |
+| S1 | Schema, triggers, versioned catalogue, seasonal pricing, seed | this branch |
+| S2 | Screens 1–2 (home/list, package detail), sitemap, robots, 404 | planned |
+| S3 | Screens 3–4 (enquiry form, acknowledgement), consent, honeypot, rate limit | planned |
+| S4 | Screens 5–6 (staff login, inbox), sessions, CSRF, role checks | planned |
+| S5 | AI extraction (live Anthropic primary, labelled rules fallback), ranking, drafting, price guard, screen 7 | planned |
+| S6 | Screen 8 (package editor, optimistic lock, publish, restore, history, preview) | planned |
+| S7 | States, phone and accessibility pass, performance, screenshots | planned |
+| S8 | TDD, `deployment.md`, DECISIONS, rubric, ZIP | planned |
+
+The 8 screens: 1 Home/list · 2 Package detail · 3 Enquiry form · 4 Acknowledgement (public status link `/enquiry/received/:token`) · 5 Staff login · 6 Inbox · 7 Enquiry workspace · 8 Admin packages.
+
+Deliverables of S0+S1: a running server with `GET /healthz` and `GET /` (a plain list of live packages), the full catalogue schema with database-level invariants, the pricing and season engine, a draft/publish/restore domain layer, and synthetic seed data.
 
 ## Non-goals (explicitly out)
 - Full breadth of an unselected problem statement; prioritize the core slice.
 - Features not justified by the selected problem statement.
+- Traveller accounts, redirect engine, CSV import, signed preview links, second language, itinerary diff view.
+- Any mock or replayed LLM at runtime. The AI path is live or an honestly labelled rules fallback.
+- Deploying (human only; the repo only ships a Dockerfile and `deployment.md` in a later slice).
+
+## Assumptions (all labelled in the UI and docs; none are claims from the brief)
+The client brief text is not in this repository. Only the facts below were relayed in the architect plan. Everything else is an assumption or synthetic placeholder.
+
+| ID | Assumption |
+|---|---|
+| A1 | **Brief facts used:** PKG-KL-07 peak price is ₹32,500 per person (twin share). Sample enquiry: 2 adults and 1 child, December, budget ₹1,20,000. PKG-SI-12 has one price and no season data. |
+| A2 | Prices are whole rupees per person, twin share. The adult fare is the listed per-person rate. |
+| A3 | **No GST rate is configured.** Figures read "before GST; tax treatment to be confirmed by Company A". A rate applies only if staff set `gst_rate_bp`; GST is rounded half up on the GST line only. |
+| A4 | **No child rule is invented.** With no `child_pct`, the child fare is unpriced and the quote is `partial`. Child ages are recorded, but no age band is applied. |
+| A5 | **No single supplement is invented.** With an odd adult count and no `single_supp_inr`, the quote is `partial` and the figure is a lower bound. |
+| A6 | Peak (Oct 1–Mar 31) and Monsoon (Jun 1–Sep 30) date ranges are **ASSUMED**. Apr–May are left uncovered on purpose, so those dates return `unavailable`. No shoulder season is invented. |
+| A7 | PKG-SI-12 gets a single all-year season labelled "season not specified". |
+| A8 | Season is decided by start date, or by month when only a month is known. A stay or month spanning seasons is priced at the cheapest covered season as a lower bound, with a reason code. |
+| A9 | Travellers do not log in. They follow an unguessable status link. The staff table has no traveller role. |
+| A10 | Only the PKG-KL-07 peak price is from the brief. The PKG-KL-07 monsoon price, the PKG-SI-12 price, all itinerary, inclusion and tag text, and the five other packages are **synthetic placeholders**. Seed rows record this in `packages.data_origin` and `change_note`. |
+| A11 | The slug is editable until a package's first publish, then locked. This replaces a redirect engine. |
+| A12 | All sample data is synthetic. No real personal data is stored or committed. |
 
 ## Stack & constraints
-- Language / framework / runtime: Pending the selected problem statement and design.
-- Package manager: Pending stack choice.
-- Hosting / environments: Pending deployment choice; app must be runnable locally.
-- Performance, security, compliance constraints: Validate inputs, enforce access control, keep secrets and real personal data out of the repository, and keep the repository public through review.
+- Language / framework / runtime: TypeScript on Node 22 (`>=22.13`), Hono with JSX server rendering, SQLite via the built-in `node:sqlite` (experimental in Node 22), `node:test`.
+- Package manager: npm; exact versions pinned in `package.json` and `package-lock.json`.
+- Hosting / environments: runs locally first; Dockerfile and `deployment.md` in a later slice. Deploying is human-only.
+- Performance, security, compliance constraints: Validate inputs, enforce access control, keep secrets and real personal data out of the repository, and keep the repository public through review. The Anthropic API key is set privately by the human in their own environment; it is never requested in chat, written to a file or committed.
 - Budget / deadlines: Seven days from when the step opens; exact opening time has not been provided.
 
 ## Commands (keep identical to AGENTS.md §0)
-setup: pending · run: pending · test: pending · lint: pending · typecheck: pending · build: pending
+setup: `npm ci` · run: `npm run dev` · test: `npm test` · lint: `npm run lint` · typecheck: `npm run typecheck` · build: `npm run build` · reset local DB: `npm run db:reset`
 
 ## Architecture sketch (short)
-Pending the selected problem statement and stack.
+`src/db` (schema, connection, seed) → `src/domain` (seasons, pricing, package versions) → `src/app.tsx` (Hono routes, server-rendered). The database enforces the version invariants with partial unique indexes and triggers; the domain layer adds validation (`PublishableVersion`), optimistic locking (`lock_version`) and transactions. Pricing is computed server-side only.
 
 ## Milestones
 | # | Milestone | Done when |
 |---|-----------|-----------|
-| 1 | Select the problem statement | CORE BUILD and assumptions are recorded. |
-| 2 | Design and build the core slice | Main flows, AI or automation behavior, and important tests pass. |
-| 3 | Package submission | TDD and `deployment.md` are verified inside one ZIP. |
+| 1 | Select the problem statement | CORE BUILD and assumptions are recorded (this document). |
+| 2 | Design and build the core slice | Slices S0–S7: main flows, AI behavior, and important tests pass. |
+| 3 | Package submission | TDD and `deployment.md` are verified inside one ZIP (S8). |
 
 ## Risks & open questions
-- The actual problem statement and its CORE BUILD have not yet been supplied; do not invent client requirements.
+- The client brief text is not in the repo. The PKG-KL-07 monsoon price and the PKG-SI-12 price are placeholders until the owner supplies them.
+- The live Anthropic path cannot be verified until the human sets `ANTHROPIC_API_KEY` locally and runs the check script (built in S5).
+- `node:sqlite` is experimental; `better-sqlite3` is the fallback behind `src/db/db.ts`.
+- SQLite needs a persistent volume on any deploy target.
 - GitHub URL, deployment target, and exact deadline start time remain to be confirmed.
 - The assignment says “Work Alone” and also recommends AI tools. Assumption for workflow only: one human owns the submission and may use AI agents as tools; verify against any further assignment rules.
 

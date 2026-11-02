@@ -1,5 +1,54 @@
 # Decisions (newest first)
 
+## 2026-11-02 · Build-process deviations from the architect plan (S0)
+- **Status:** accepted
+- **Context:** Problems met while starting the Builder packet.
+- **Decision:**
+  1. **Isolated worktree.** An unidentified writer kept adding files to the shared checkout (a stale, over-scoped draft using a mock AI provider and invented 75% child and 500 bp GST defaults). Its files were moved untouched to `/tmp/iso-stale-builder-draft-133242/` and this slice is built in the worktree `.claude/worktrees/kochi-core` on `feat/kochi-tours-core`. The draft is non-authoritative.
+  2. **`.env.example` not created.** The project's `Read(./.env.*)` deny rule also matches that filename, so the Write tool refused it, and the deny rule was not bypassed. Variable names are documented in `README.md`. A human can add `.env.example` or allow that one path.
+  3. **Deferred installs.** `@anthropic-ai/sdk` and `@playwright/test` are approved and version-checked but installed in the slice that first uses them (S5 and S7), to keep the S0 supply-chain surface minimal.
+  4. **Seed data provenance.** Only the PKG-KL-07 peak price is a brief fact. Every other price and all itinerary text are synthetic placeholders, recorded in `packages.data_origin` and the version `change_note`.
+- **Consequences:** The owner should create `.env.example` and supply the missing brief prices. Merge from the worktree branch is unaffected.
+- **Decided by:** agent (Builder) · **Related:** `feat/kochi-tours-core`
+
+## 2026-11-02 · Company A Kochi tour operator: architecture and policy decisions
+- **Status:** accepted
+- **Context:** The project owner chose Problem 2 (Company A, Kochi tour operator) and approved architect plan v2.
+- **Decision:**
+  1. **Stack.** Node 22, Hono JSX server rendering, SQLite through the built-in `node:sqlite`, `node:test`, zod for validation. Ladder: stdlib first (`node:sqlite`, `node:test`, `node:crypto` for password hashing later); Hono/zod are the small well-known deps that remain. The `node:sqlite` spike passed on Node 22.14 (foreign keys, partial unique indexes, SQLite 3.47.2). If it breaks, `better-sqlite3` is swapped in behind `src/db/db.ts`.
+  2. **AI.** A live Anthropic call is the primary configured mode. A rules parser is the fallback and is labelled as such everywhere. No mock LLM and no fixture replay exist at runtime. Tests may inject a fake HTTP client into the adapter, never selectable from config.
+  3. **API key.** The human sets `ANTHROPIC_API_KEY` privately in their own environment. The agent never requests, reads or writes it. The live path is therefore unverified until the human runs the check script (S5).
+  4. **No invented rates.** The brief gives no GST, child or single-supplement rule, so none is seeded: `child_pct`, `single_supp_inr` and `gst_rate_bp` start unset. Test fixtures may use 75% and 500 bp to prove arithmetic only.
+  5. **Partial quotes.** A quote is `complete`, `partial` (lower bound with listed unpriced items) or `unavailable` (no season for the date). Partial quotes are never presented as final.
+  6. **Slug lock instead of redirects.** A package slug is editable until the first publish, then locked by a trigger. No redirect engine.
+  7. **One `lock_version`.** It covers the draft row and its replaced child rows, which are saved in one transaction (optimistic locking, stale save returns a conflict).
+  8. **Staff-only users.** Roles are `admin` and `agent`. Travellers have no login and use an unguessable status link.
+  9. **Git.** One feature branch with slice commit groups, pushed after each slice, one PR for human merge.
+- **Consequences:** Sample quotes are `partial` until staff set a child rule and publish. SQLite needs a persistent volume wherever this is deployed. `node:sqlite` prints an experimental warning.
+- **Decided by:** Human project owner (scope), architect plan v2 · **Related:** `docs/PROJECT_BRIEF.md`
+
+## 2026-11-02 · Dependencies for the Kochi tour operator build
+- **Status:** accepted
+- **Context:** The owner authorised routine, well-maintained dependencies. Versions were taken from `npm view` on 2026-11-02 and pinned exactly in `package.json` plus the lockfile. Licences are as reported by the registry. Maintenance was judged by current release version only; no deeper audit was done.
+- **Decision:**
+
+| Package | Version | Licence | Why | Alternative |
+|---|---|---|---|---|
+| `hono` | 4.13.16 | MIT | Small web framework with JSX server rendering and `app.request()` for tests | Express (heavier, no JSX) |
+| `@hono/node-server` | 2.1.5 | MIT | Node adapter for Hono | Node `http` by hand |
+| `zod` | 4.6.7 | MIT | Input and `PublishableVersion` validation; later the AI tool schema | Hand-written validators |
+| `typescript` | 6.0.3 | Apache-2.0 | Type checking. Pinned below 7 because `typescript-eslint@8.72.1` declares `typescript <6.1.0` | TS 7.0.2 (unsupported by linter) |
+| `tsx` | 4.23.15 | MIT | Run TypeScript directly in dev and tests | Compile before every run |
+| `@types/node` | 22.20.5 | MIT | Node 22 typings, matching the runtime | Latest 26.x (wrong runtime) |
+| `eslint` | 10.14.0 | MIT | Linting | Biome |
+| `@eslint/js` | 10.0.1 | MIT | ESLint recommended rules (not in the plan's list, needed by the flat config) | Skip core rules |
+| `typescript-eslint` | 8.72.1 | MIT | TypeScript lint rules | None |
+| `@anthropic-ai/sdk` | 1.3.0 | Apache-2.0 | Typed tool-use, timeouts, retries for the live extractor. Installed in S5. Plan said MIT; registry says Apache-2.0 | Hand-rolled HTTP |
+| `@playwright/test` | 1.64.1 | Apache-2.0 | Screenshots and end-to-end checks. Installed in S7 | Manual screenshots |
+
+- **Consequences:** `eslint@10` needs Node `^20.19 || ^22.13 || >=24`, which is why `engines.node` is `>=22.13`. The last two rows are approved but not yet installed.
+- **Decided by:** agent (Builder) under owner authorisation · **Related:** `package.json`, `package-lock.json`
+
 ## 2026-11-02 · Equip the builder for visual design and browser checks
 - **Status:** accepted
 - **Context:** The project owner requested the Emil Kowalski, Impeccable Design, and Taste skills, plus Figma and Playwright, before product implementation.
