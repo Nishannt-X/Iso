@@ -30,4 +30,4 @@ npm test
 `dev`, `build`, `start`, `test`, `lint`, `typecheck`, `db:reset`.
 
 ## Data
-All data is synthetic. Only the PKG-KL-07 peak price is a fact from the client brief; every other price and all itinerary text are labelled placeholders. No GST, child or single-supplement rate is assumed: quotes that need them are reported as `partial`.
+The two sample packages come from the client brief (`docs/CLIENT_BRIEF.md`): PKG-KL-07 (published, Peak ₹32,500, Monsoon ₹24,900) and PKG-SI-12 (draft, All year ₹18,750). Season day boundaries, `nights`, itineraries and the five `SYN-*` packages are assumed or synthetic and labelled so in the data. No GST, child or single-supplement rate is assumed: quotes that need them are reported as `partial`.

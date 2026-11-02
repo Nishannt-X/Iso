@@ -1,6 +1,7 @@
 # Project Brief
 
 > Source of truth for scope. Agents read this first. Update when scope changes (note why in DECISIONS.md).
+> Client facts (sample packages, sample enquiry) live in [`docs/CLIENT_BRIEF.md`](CLIENT_BRIEF.md). Consult it before touching seed data, pricing or enquiry handling.
 
 - **Name:** Company A Kochi tour operator (Problem 2)
 - **One-line purpose:** Let travellers browse tour packages and send an enquiry, and let staff manage package content (versioned) and triage enquiries with AI-assisted, human-approved replies.
@@ -41,20 +42,20 @@ Deliverables of S0+S1: a running server with `GET /healthz` and `GET /` (a plain
 - Deploying (human only; the repo only ships a Dockerfile and `deployment.md` in a later slice).
 
 ## Assumptions (all labelled in the UI and docs; none are claims from the brief)
-The client brief text is not in this repository. Only the facts below were relayed in the architect plan. Everything else is an assumption or synthetic placeholder.
+The brief's sample facts are in [`docs/CLIENT_BRIEF.md`](CLIENT_BRIEF.md); the rest of the brief prose is not yet transcribed there. Everything in this table is an assumption of the build unless row A1 says otherwise.
 
 | ID | Assumption |
 |---|---|
-| A1 | **Brief facts used:** PKG-KL-07 peak price is ₹32,500 per person (twin share). Sample enquiry: 2 adults and 1 child, December, budget ₹1,20,000. PKG-SI-12 has one price and no season data. |
+| A1 | **Brief facts used (see `CLIENT_BRIEF.md`):** PKG-KL-07 "Munnar, Thekkady and Alleppey houseboat", 6 days, 4-star, published, Peak Oct–Mar ₹32,500 and Monsoon Jun–Sep ₹24,900 per person. PKG-SI-12 "Madurai, Rameswaram and Kanyakumari", 5 days, 3-star, All year ₹18,750 per person, DRAFT. Sample enquiry: "Hi, 2 adults and 1 kid, Kerala 5-6 nights in December, budget around 1.2 lakh total, houseboat a must". |
 | A2 | Prices are whole rupees per person, twin share. The adult fare is the listed per-person rate. |
 | A3 | **No GST rate is configured.** Figures read "before GST; tax treatment to be confirmed by Company A". A rate applies only if staff set `gst_rate_bp`; GST is rounded half up on the GST line only. |
 | A4 | **No child rule is invented.** With no `child_pct`, the child fare is unpriced and the quote is `partial`. Child ages are recorded, but no age band is applied. |
 | A5 | **No single supplement is invented.** With an odd adult count and no `single_supp_inr`, the quote is `partial` and the figure is a lower bound. |
-| A6 | Peak (Oct 1–Mar 31) and Monsoon (Jun 1–Sep 30) date ranges are **ASSUMED**. Apr–May are left uncovered on purpose, so those dates return `unavailable`. No shoulder season is invented. |
-| A7 | PKG-SI-12 gets a single all-year season labelled "season not specified". |
+| A6 | The brief gives the season **months** (Peak Oct–Mar, Monsoon Jun–Sep). The exact day boundaries (Oct 1, Mar 31, Jun 1, Sep 30) are **ASSUMED** and flagged `rangeAssumed`. The brief has no Apr–May price, so those dates return `unavailable`. No shoulder season is invented. |
+| A7 | PKG-SI-12's brief season "All year" is stored as 01-01..12-31 with `rangeAssumed` false, since "all year" has no boundary to guess. |
 | A8 | Season is decided by start date, or by month when only a month is known. A stay or month spanning seasons is priced at the cheapest covered season as a lower bound, with a reason code. |
 | A9 | Travellers do not log in. They follow an unguessable status link. The staff table has no traveller role. |
-| A10 | Only the PKG-KL-07 peak price is from the brief. The PKG-KL-07 monsoon price, the PKG-SI-12 price, all itinerary, inclusion and tag text, and the five other packages are **synthetic placeholders**. Seed rows record this in `packages.data_origin` and `change_note`. |
+| A10 | The sample table (A1) is from the brief. `nights` (= days − 1), region labels, all itinerary, summary, inclusion and tag text, and the five `SYN-*` packages are **assumed or synthetic**. Seed rows record this in `packages.data_origin` and `change_note`. |
 | A11 | The slug is editable until a package's first publish, then locked. This replaces a redirect engine. |
 | A12 | All sample data is synthetic. No real personal data is stored or committed. |
 
@@ -79,7 +80,7 @@ setup: `npm ci` · run: `npm run dev` · test: `npm test` · lint: `npm run lint
 | 3 | Package submission | TDD and `deployment.md` are verified inside one ZIP (S8). |
 
 ## Risks & open questions
-- The client brief text is not in the repo. The PKG-KL-07 monsoon price and the PKG-SI-12 price are placeholders until the owner supplies them.
+- Only the brief's sample table and sample enquiry are transcribed (`docs/CLIENT_BRIEF.md`). The owner should paste the remaining sections verbatim so later slices can check requirements against the real text.
 - The live Anthropic path cannot be verified until the human sets `ANTHROPIC_API_KEY` locally and runs the check script (built in S5).
 - `node:sqlite` is experimental; `better-sqlite3` is the fallback behind `src/db/db.ts`.
 - SQLite needs a persistent volume on any deploy target.

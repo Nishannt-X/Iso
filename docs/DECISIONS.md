@@ -1,5 +1,13 @@
 # Decisions (newest first)
 
+## 2026-11-02 · Correct seed data to the brief's sample table; add CLIENT_BRIEF.md
+- **Status:** accepted
+- **Context:** Review of S0+S1 found the seed built without the brief's sample table. It invented a ₹24,000 PKG-KL-07 Monsoon price and a ₹41,000, 8-day, 4-star PKG-SI-12, and the docs claimed those brief facts were missing. A second finding: `validateSeasons` compared season names, so two overlapping seasons with the same name passed.
+- **Options considered:** A) leave the placeholders and flag them; B) replace them with the brief facts and keep only the day boundaries and `nights` as labelled assumptions; C) do nothing.
+- **Decision:** B. PKG-KL-07 is "Munnar, Thekkady and Alleppey houseboat", 6 days, 4-star, Peak ₹32,500 and Monsoon ₹24,900. PKG-SI-12 is "Madurai, Rameswaram and Kanyakumari", 5 days, 3-star, All year ₹18,750, draft. Peak and Monsoon day boundaries stay `rangeAssumed`; All year does not. `docs/CLIENT_BRIEF.md` records the exact facts; the brief's other sections are marked not transcribed rather than reconstructed. Overlap validation now tracks season position, not name, and numbers the pair in the message only when names are equal.
+- **Consequences:** Supersedes item 4 of the S0 build-process entry below (its claim that other prices were missing is withdrawn). The owner still needs to paste the remaining brief prose into `CLIENT_BRIEF.md`. Publishing over HTTP in S6 must require `expectedLockVersion` (optimistic lock) at the request boundary; the domain API is unchanged for now.
+- **Decided by:** agent (Builder) on reviewer findings · **Related:** `fix(seasons)` and `fix(seed)` commits on `feat/kochi-tours-core`
+
 ## 2026-11-02 · Build-process deviations from the architect plan (S0)
 - **Status:** accepted
 - **Context:** Problems met while starting the Builder packet.
@@ -7,8 +15,8 @@
   1. **Isolated worktree.** An unidentified writer kept adding files to the shared checkout (a stale, over-scoped draft using a mock AI provider and invented 75% child and 500 bp GST defaults). Its files were moved untouched to `/tmp/iso-stale-builder-draft-133242/` and this slice is built in the worktree `.claude/worktrees/kochi-core` on `feat/kochi-tours-core`. The draft is non-authoritative.
   2. **`.env.example` not created.** The project's `Read(./.env.*)` deny rule also matches that filename, so the Write tool refused it, and the deny rule was not bypassed. Variable names are documented in `README.md`. A human can add `.env.example` or allow that one path.
   3. **Deferred installs.** `@anthropic-ai/sdk` and `@playwright/test` are approved and version-checked but installed in the slice that first uses them (S5 and S7), to keep the S0 supply-chain surface minimal.
-  4. **Seed data provenance.** Only the PKG-KL-07 peak price is a brief fact. Every other price and all itinerary text are synthetic placeholders, recorded in `packages.data_origin` and the version `change_note`.
-- **Consequences:** The owner should create `.env.example` and supply the missing brief prices. Merge from the worktree branch is unaffected.
+  4. **Seed data provenance.** *(Superseded by the entry above: the brief does give the sample prices, and the seed now uses them.)* Itinerary text and the `SYN-*` packages remain synthetic, recorded in `packages.data_origin` and the version `change_note`.
+- **Consequences:** The owner should create `.env.example`. Merge from the worktree branch is unaffected.
 - **Decided by:** agent (Builder) · **Related:** `feat/kochi-tours-core`
 
 ## 2026-11-02 · Company A Kochi tour operator: architecture and policy decisions
