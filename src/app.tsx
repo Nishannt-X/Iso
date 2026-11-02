@@ -8,10 +8,12 @@ import { get, type DatabaseSync } from './db/db.js';
 import { getLiveVersionBySlug, listDataOrigins, listLiveVersions } from './domain/packages.js';
 import { PHOTO_FILE_PATTERN } from './domain/photos.js';
 import { DEFAULT_LIMITS, registerEnquiryRoutes, type EnquiryLimits } from './web/enquiry-routes.js';
+import { DEFAULT_LOGIN_LIMITS, registerStaffRoutes, type LoginLimits } from './web/staff-routes.js';
 import { HomePage, MessagePage, PackagePage, packagePath, type PageContext } from './web/pages.js';
 
 // Public site (slice S2): server-rendered home/list and package detail, plus sitemap, robots and 404.
 // Slice S3 adds the enquiry flow (src/web/enquiry-routes.tsx): the form behind every Enquire button and the status page.
+// Slice S4 adds the staff area under /staff (src/web/staff-routes.tsx): sign-in, inbox and enquiry workspace.
 
 export interface AppOptions {
   /** Absolute origin used in canonical links, the sitemap and robots.txt, e.g. https://example.com */
@@ -21,6 +23,7 @@ export interface AppOptions {
   /** Clock, injectable for tests. */
   now?: () => Date;
   limits?: Partial<EnquiryLimits>;
+  loginLimits?: Partial<LoginLimits>;
 }
 
 const PUBLIC_DIR = fileURLToPath(new URL('./public/', import.meta.url));
@@ -83,6 +86,13 @@ export function createApp(db: DatabaseSync, options: AppOptions = {}): Hono {
     limits: { ...DEFAULT_LIMITS, ...options.limits },
   });
 
+  registerStaffRoutes(app, db, ctx, {
+    now: options.now ?? (() => new Date()),
+    trustProxy: options.trustProxy ?? false,
+    secureCookies: new URL(ctx.siteUrl).protocol === 'https:',
+    loginLimits: { ...DEFAULT_LOGIN_LIMITS, ...options.loginLimits },
+  });
+
   app.get('/assets/:dir/:file', async (c) => {
     const rule = ASSETS[c.req.param('dir')];
     const file = c.req.param('file');
@@ -109,7 +119,7 @@ export function createApp(db: DatabaseSync, options: AppOptions = {}): Hono {
   });
 
   app.get('/robots.txt', (c) =>
-    c.text(`User-agent: *\nAllow: /\nDisallow: /enquire\nDisallow: /enquiry/\n\nSitemap: ${ctx.siteUrl}/sitemap.xml\n`),
+    c.text(`User-agent: *\nAllow: /\nDisallow: /enquire\nDisallow: /enquiry/\nDisallow: /staff/\n\nSitemap: ${ctx.siteUrl}/sitemap.xml\n`),
   );
 
   app.notFound((c) =>

@@ -206,7 +206,7 @@ describe('sitemap.xml and robots.txt', () => {
 
   test('robots.txt allows crawling, keeps the placeholder out and points at the sitemap', async () => {
     const body = await text(await app.request('/robots.txt'));
-    assert.equal(body, `User-agent: *\nAllow: /\nDisallow: /enquire\nDisallow: /enquiry/\n\nSitemap: ${SITE}/sitemap.xml\n`);
+    assert.equal(body, `User-agent: *\nAllow: /\nDisallow: /enquire\nDisallow: /enquiry/\nDisallow: /staff/\n\nSitemap: ${SITE}/sitemap.xml\n`);
   });
 });
 
