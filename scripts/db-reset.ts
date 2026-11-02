@@ -1,5 +1,5 @@
 import { isLoopbackOrigin, loadConfig } from '../src/config.js';
-import { all } from '../src/db/db.js';
+import { all, get } from '../src/db/db.js';
 import { resetDatabase } from '../src/db/seed.js';
 
 const { dbPath, siteUrl, demoStaffPassword } = loadConfig();
@@ -17,7 +17,8 @@ const rows = all<{ code: string; status: string }>(
 console.log(`Database reset at ${dbPath}`);
 for (const r of rows) console.log(`  ${r.code}  ${r.status}`);
 if (demoStaffPassword) {
-  console.log('Staff accounts: 3 demo staff users enabled.');
+  const count = get<{ count: number }>(db, 'SELECT COUNT(*) AS count FROM staff_users WHERE active=1')?.count ?? 0;
+  console.log(`Staff accounts: ${count} demo staff users enabled.`);
 } else {
   console.log('Staff accounts: login disabled (no DEMO_STAFF_PASSWORD set). Set DEMO_STAFF_PASSWORD before db:reset to enable staff login.');
 }

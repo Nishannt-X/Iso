@@ -11,6 +11,8 @@ export interface Config {
   /** Password for the three synthetic demo staff accounts that `npm run db:reset` creates. null = login disabled. */
   demoStaffPassword: string | null;
   geminiApiKey: string | null;
+  /** Optional JSON file mapping old URL paths to new ones (see docs/legacy-redirects.example.json). null = no redirects. */
+  redirectsFile: string | null;
 }
 
 export function isLoopbackOrigin(origin: string): boolean {
@@ -46,5 +48,5 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       throw new Error(`DEMO_STAFF_PASSWORD cannot use the known default password on a public site URL ("${siteUrl}")`);
     }
   }
-  return { port, dbPath: env.DB_PATH || 'data/kochi-tours.db', siteUrl, trustProxy: env.TRUST_PROXY === '1', demoStaffPassword, geminiApiKey: env.GEMINI_API_KEY || null };
+  return { port, dbPath: env.DB_PATH || 'data/kochi-tours.db', siteUrl, trustProxy: env.TRUST_PROXY === '1', demoStaffPassword, geminiApiKey: env.GEMINI_API_KEY || null, redirectsFile: env.REDIRECTS_FILE || null };
 }

@@ -40,6 +40,7 @@ On public site URLs (non-localhost), the known demo password (`demo-staff-passwo
 | `SITE_URL` | now | Public origin for canonical links, `sitemap.xml` and `robots.txt`; default `http://localhost:$PORT` |
 | `TRUST_PROXY` | now | Set to `1` only behind exactly one trusted reverse proxy; the enquiry rate limits then use the last `X-Forwarded-For` entry. Default off |
 | `GEMINI_API_KEY` | now | Live Google Gemini API extraction. Set privately; never commit or paste it. Without it, the UI labels the local rules fallback |
+| `REDIRECTS_FILE` | now | Path to a JSON map of old URL path to new path (shape: `docs/legacy-redirects.example.json`). Validated at start-up (no open redirects, loops or chains); an invalid file stops the server. Check one first with `npx tsx scripts/check-redirects.ts <file>`. Unset = no redirects |
 | `DEMO_STAFF_PASSWORD` | now | Password for the four synthetic demo staff accounts. When unset during `npm run db:reset`, accounts are created inactive with login disabled, eliminating default credentials. Required before public use (must be non-default) |
 
 ## Scripts

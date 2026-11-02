@@ -13,6 +13,7 @@ import { DEFAULT_LIMITS, registerEnquiryRoutes, type EnquiryLimits } from './web
 import { DEFAULT_LOGIN_LIMITS, registerStaffRoutes, type LoginLimits } from './web/staff-routes.js';
 import { DestinationIndexPage, DestinationPage, HomePage, MessagePage, PackagePage, PackageSearchPage, destinationPath, destinationSlug, packagePath, type PageContext } from './web/pages.js';
 import { BlogArticlePage, BlogIndexPage } from './web/blog-pages.js';
+import { resolveRedirect } from './domain/legacy-redirects.js';
 import { getPublicQuote } from './domain/package-quotes.js';
 import { renderQuotePdf } from './domain/quote-pdf.js';
 import { PublicQuotePage } from './web/quote-pages.js';
@@ -31,6 +32,8 @@ export interface AppOptions {
   limits?: Partial<EnquiryLimits>;
   loginLimits?: Partial<LoginLimits>;
   geminiApiKey?: string | null;
+  /** Validated old-path -> new-path map (loadRedirectsFileSync). Matching GET/HEAD requests get a 301. */
+  redirects?: Map<string, string>;
 }
 
 const PUBLIC_DIR = fileURLToPath(new URL('./public/', import.meta.url));
@@ -66,6 +69,11 @@ export function createApp(db: DatabaseSync, options: AppOptions = {}): Hono {
   const defaultHeaders = securityHeaders('same-origin');
   const statusPageHeaders = securityHeaders('no-referrer');
   app.use((c, next) => (c.req.path.startsWith('/enquiry/received/') || c.req.path.startsWith('/quote/') ? statusPageHeaders : defaultHeaders)(c, next));
+  app.use(async (c, next) => {
+    const to = options.redirects && (c.req.method === 'GET' || c.req.method === 'HEAD') ? resolveRedirect(options.redirects, c.req.path) : null;
+    if (to) return c.redirect(to, 301);
+    await next();
+  });
   app.use(trimTrailingSlash());
 
   app.get('/healthz', (c) => {
