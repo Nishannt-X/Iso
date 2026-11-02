@@ -204,8 +204,7 @@ export function registerEnquiryRoutes(app: Hono, db: DatabaseSync, ctx: PageCont
     if (!ack) return c.notFound(); // the same 404 for malformed and unknown tokens
     return c.html(doc(<AcknowledgementPage ack={ack} ctx={ctx} />), 200, {
       ...NO_STORE,
-      'X-Robots-Tag': 'noindex, nofollow',
-      'Referrer-Policy': 'no-referrer',
+      'X-Robots-Tag': 'noindex, nofollow', // Referrer-Policy: no-referrer for this path is set in app.tsx
     });
   });
 }

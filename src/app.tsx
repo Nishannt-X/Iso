@@ -38,8 +38,9 @@ export function createApp(db: DatabaseSync, options: AppOptions = {}): Hono {
   const app = new Hono();
 
   app.use(compress());
-  app.use(
+  const securityHeaders = (referrerPolicy: 'same-origin' | 'no-referrer') =>
     secureHeaders({
+      referrerPolicy,
       contentSecurityPolicy: {
         defaultSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
@@ -48,8 +49,13 @@ export function createApp(db: DatabaseSync, options: AppOptions = {}): Hono {
         frameAncestors: ["'none'"],
         formAction: ["'self'"],
       },
-    }),
-  );
+    });
+  // Site-wide "same-origin", not Hono's default "no-referrer": with that, browsers send "Origin: null" on form
+  // POSTs, which the enquiry form's same-site check must refuse. "same-origin" still sends nothing to other sites.
+  // The status page URL holds a secret token, so it alone stays "no-referrer".
+  const defaultHeaders = securityHeaders('same-origin');
+  const statusPageHeaders = securityHeaders('no-referrer');
+  app.use((c, next) => (c.req.path.startsWith('/enquiry/received/') ? statusPageHeaders : defaultHeaders)(c, next));
   app.use(trimTrailingSlash());
 
   app.get('/healthz', (c) => {

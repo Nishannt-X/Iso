@@ -74,6 +74,11 @@ describe('GET /enquire (the form)', () => {
     assert.match(body, /<div class="hp" aria-hidden="true"><label for="website">[^<]*<\/label><input[^>]*name="website"[^>]*tabindex="-1"[^>]*autocomplete="off"/);
   });
 
+  test('the form page lets the browser send its real Origin on submit (a no-referrer policy would make it "null")', async () => {
+    const res = await app.request(`/enquire?package=${KL07}`);
+    assert.equal(res.headers.get('referrer-policy'), 'same-origin');
+  });
+
   test('each visit gets a fresh submission key', async () => {
     const key = async () => (await (await app.request(`/enquire?package=${KL07}`)).text()).match(/name="key" value="([^"]+)"/)?.[1];
     assert.notEqual(await key(), await key());
