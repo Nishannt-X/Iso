@@ -89,6 +89,16 @@ describe('validateSeasons', () => {
     const issues = validateSeasons([peak, { ...monsoon, startMd: '03-15', endMd: '04-10' }]);
     assert.match(issues.join(), /overlap/);
   });
+  test('detects overlap between two seasons that share a name', () => {
+    const issues = validateSeasons([peak, { ...peak, startMd: '03-15', endMd: '04-10' }]);
+    assert.equal(issues.length, 1);
+    assert.match(issues[0], /overlap/);
+    assert.match(issues[0], /#1/);
+    assert.match(issues[0], /#2/);
+  });
+  test('identically named seasons that do not overlap are valid', () => {
+    assert.deepEqual(validateSeasons([{ ...peak, startMd: '10-01', endMd: '12-31' }, { ...peak, startMd: '01-01', endMd: '03-31' }]), []);
+  });
   test('flags invalid MM-DD and non-positive or fractional prices', () => {
     assert.match(validateSeasons([{ ...peak, startMd: '02-30' }]).join(), /not a valid MM-DD/);
     assert.match(validateSeasons([{ ...peak, pricePpTwinInr: 0 }]).join(), /positive whole number/);

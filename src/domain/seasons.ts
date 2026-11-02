@@ -50,27 +50,30 @@ function seasonIndexAt(seasons: readonly Season[], ordinal: number): number {
 export function validateSeasons(seasons: readonly Season[]): string[] {
   const issues: string[] = [];
   if (seasons.length === 0) issues.push('at least one season is required');
-  const owner = new Map<number, string>();
-  for (const s of seasons) {
-    const label = s.name || '(unnamed season)';
+  const owner = new Map<number, number>(); // day-of-year -> index of the first season covering it
+  const labelOf = (i: number) => seasons[i].name || '(unnamed season)';
+  seasons.forEach((s, i) => {
+    const label = labelOf(i);
     if (mdOrdinal(s.startMd) === null) issues.push(`${label}: start "${s.startMd}" is not a valid MM-DD date`);
     if (mdOrdinal(s.endMd) === null) issues.push(`${label}: end "${s.endMd}" is not a valid MM-DD date`);
     if (!Number.isInteger(s.pricePpTwinInr) || s.pricePpTwinInr <= 0) {
       issues.push(`${label}: price must be a positive whole number of rupees`);
     }
-    if (mdOrdinal(s.startMd) === null || mdOrdinal(s.endMd) === null) continue;
+    if (mdOrdinal(s.startMd) === null || mdOrdinal(s.endMd) === null) return;
     for (let d = 1; d <= DAYS_IN_YEAR; d++) {
       if (!covers(s, d)) continue;
       const other = owner.get(d);
-      if (other !== undefined && other !== label) {
-        const pair = [other, label].sort().join('" and "');
-        const msg = `seasons "${pair}" overlap`;
-        if (!issues.includes(msg)) issues.push(msg);
-      } else {
-        owner.set(d, label);
+      if (other === undefined) {
+        owner.set(d, i);
+        continue;
       }
+      // Compare positions, not names: two overlapping seasons may share a name. Number them only then.
+      const same = labelOf(other) === label;
+      const names = [same ? `${labelOf(other)} #${other + 1}` : labelOf(other), same ? `${label} #${i + 1}` : label].sort();
+      const msg = `seasons "${names.join('" and "')}" overlap`;
+      if (!issues.includes(msg)) issues.push(msg);
     }
-  }
+  });
   return issues;
 }
 
