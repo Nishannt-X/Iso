@@ -1,3 +1,18 @@
+## 2026-11-02 · S4 staff area: authentication, sessions, CSRF, triage inbox, workspace, and audit trail
+- **Status:** accepted
+- **Context:** S4 requires a staff back-office for Company A: authentication, session handling, role checks, inbox triage, enquiry workspace, internal notes, mock replies, and audit logging with personal data protection.
+- **Options considered:** A) Use third-party session/auth libraries; B) Leverage existing domain/db layer with Node stdlib crypto (scrypt, timingSafeEqual, sha256), server-rendered Hono JSX, hardened session cookies, and database-backed audit logging; C) Insecure plain-text authentication.
+- **Decision:** Option B. Minimal dependencies and strict adherence to project principles:
+  1. **Authentication & Passwords:** Node stdlib crypto scrypt with cost parameters, timing-safe equality checks, and generic error responses for non-existent accounts and bad passwords to prevent email enumeration. Failed attempts are rate-limited per client IP and per email.
+  2. **Sessions & Cookies:** Session tokens stored as SHA-256 hashes in `staff_sessions`; cookie sent with `HttpOnly`, `SameSite=Lax`, `Path=/`, and `Secure` (with `__Host-` prefix on HTTPS). Sessions expire after 12 hours absolute or 2 hours idle.
+  3. **CSRF & Origin Protection:** Every state-changing staff POST requires a session CSRF token and a verified same-site `Origin` header.
+  4. **Roles & Permissions:** `admin` and `agent` (consultant). Admins can assign to anyone and view the activity log; consultants can only self-assign or unassign their own enquiries, with 403 on restricted actions.
+  5. **Optimistic Concurrency:** `lock_version` checked on every workspace mutation to prevent concurrent consultant overwrite conflicts.
+  6. **Data Protection:** The audit trail (`audit_log`) records IDs, statuses, and counts only—never traveller personal data, message bodies, or internal notes.
+  7. **Mock Reply Outbox:** Replies are recorded in `outbox_messages` with status `mock_recorded`, clearly labelled with banners that no real message is sent.
+- **Consequences:** All staff workflows are fully functional and verifiable without external mail/SMS/WhatsApp transports. Crawlers are excluded via `Disallow: /staff/` in `robots.txt` and `noindex` headers.
+- **Decided by:** agent (Builder) · **Related:** S4 commits on `feat/kochi-tours-core`
+
 # Decisions (newest first)
 
 ## 2026-11-02 · S3 enquiry flow: immutable record, mock outbox, opaque status link, spam and duplicate handling

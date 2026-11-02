@@ -2,7 +2,7 @@
 
 Package catalogue with seasonal pricing, versioned package content for staff, and AI-assisted enquiry triage with human-approved replies. Built in slices; see `docs/PROJECT_BRIEF.md` for scope, assumptions and status, and `docs/DECISIONS.md` for why.
 
-**Status:** slices S0 to S3: catalogue, pricing engine, versioning, seed, the public site (home/list, package detail, sitemap, robots, 404) and the enquiry flow (form, mock acknowledgement, public status page). Staff screens (inbox) and AI triage are not built yet. No message is ever actually sent.
+**Status:** slices S0 to S4: catalogue, pricing engine, versioning, seed, the public site (home/list, package detail, sitemap, robots, 404) and the enquiry flow (form, mock acknowledgement, public status page). Staff area (/staff/login, /staff/inbox, enquiry workspace, internal notes, mock reply outbox, admin activity log) is complete. AI triage (S5) and package CMS (S6) are not built yet. No message is ever actually sent.
 
 ## Quickstart
 Requires Node `>=22.13` (see `.nvmrc`).
@@ -17,7 +17,7 @@ npm test
 `node:sqlite` is experimental in Node 22 and prints a one-line warning; that is expected.
 
 ## Routes
-`/` home and package list · `/packages/:slug` package detail · `GET /enquire?package=<slug>` the enquiry form for a live package, `POST /enquire` to send it · `/enquiry/received/:token` acknowledgement and status (reached only by the unguessable link; noindex) · `/sitemap.xml` · `/robots.txt` · `/healthz` · `/assets/*` photos and font. A trailing slash redirects (301) to the clean URL; unknown paths and unpublished packages return a 404 page.
+`/` home and package list · `/packages/:slug` package detail · `GET /enquire?package=<slug>` the enquiry form for a live package, `POST /enquire` to send it · `/enquiry/received/:token` acknowledgement and status (reached only by the unguessable link; noindex) · `/staff/login` staff sign-in · `/staff/inbox` triage queue · `/staff/enquiries/:id` enquiry workspace · `/staff/activity` admin audit log · `/sitemap.xml` · `/robots.txt` · `/healthz` · `/assets/*` photos and font. A trailing slash redirects (301) to the clean URL; unknown paths and unpublished packages return a 404 page.
 
 ## Environment variables (names only; set them in your own shell or a git-ignored `.env`)
 | Name | Used | Purpose |

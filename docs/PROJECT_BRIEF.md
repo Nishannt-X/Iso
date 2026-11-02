@@ -24,7 +24,7 @@ The core slice, delivered in slices on one branch (`feat/kochi-tours-core`). Sta
 | S1 | Schema, triggers, versioned catalogue, seasonal pricing, seed | this branch |
 | S2 | Screens 1–2 (home/list, package detail), seasonal price display, photos with provenance, sitemap, robots, 404 | this branch |
 | S3 | Screens 3–4 (enquiry form, acknowledgement), consent, honeypot, rate limit, mock outbox, seeded sample enquiry | this branch |
-| S4 | Screens 5–6 (staff login, inbox), sessions, CSRF, role checks | planned |
+| S4 | Screens 5–6 (staff login, inbox), sessions, CSRF, role checks | this branch |
 | S5 | AI extraction (live Anthropic primary, labelled rules fallback), ranking, drafting, price guard, screen 7 | planned |
 | S6 | Screen 8 (package editor, optimistic lock, publish, restore, history, preview) | planned |
 | S7 | States, phone and accessibility pass, performance, screenshots | planned |
