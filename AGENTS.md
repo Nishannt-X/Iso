@@ -6,9 +6,9 @@ Precedence: explicit user instruction in chat > nearest nested `AGENTS.md` > thi
 If two rules conflict, stop and ask. Do not pick silently.
 
 ## 0. Project facts (fill in once, keep current)
-- Purpose: Build and submit the selected client brief's core product slice end to end.
-- Stack: Pending the selected problem statement and technical design.
-- Setup: pending · Run: pending · Test: pending · Lint: pending · Typecheck: pending · Build: pending
+- Purpose: Company A Kochi tour operator (Problem 2): package catalogue, seasonal pricing, versioned CMS, AI-assisted enquiry triage.
+- Stack: TypeScript, Node >=22.13, Hono (JSX SSR), SQLite via `node:sqlite`, zod, `node:test`; npm.
+- Setup: `npm ci` · Run: `npm run dev` · Test: `npm test` · Lint: `npm run lint` · Typecheck: `npm run typecheck` · Build: `npm run build` · Reset DB: `npm run db:reset`
 - Default branch: `main` (protected). Source of truth for scope: `docs/PROJECT_BRIEF.md`.
 Never guess a command. If a field above is blank, find it in the repo or ask.
 

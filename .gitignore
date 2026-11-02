@@ -5,3 +5,9 @@ CLAUDE.local.md
 .claude/skills/taste/docs/
 .claude/skills/taste/evals/
 .claude/skills/impeccable/scripts/impeccable.cmd
+node_modules/
+dist/
+data/
+*.db
+*.db-shm
+*.db-wal
