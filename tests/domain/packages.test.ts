@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { all, get, run, type DatabaseSync } from '../../src/db/db.js';
 import {
-  createPackage, DomainError, getDraftForPackage, getLiveVersionBySlug, getVersion, listLiveVersions,
+  createPackage, DomainError, getDraftForPackage, getLiveVersionBySlug, getVersion, listLiveVersions, listPackageHistory, listPackagesForStaff,
   publish, restoreVersion, saveDraft, setPackageSlug, validatePublishable, type DomainErrorCode, type VersionContent,
 } from '../../src/domain/packages.js';
 import { freshDb } from '../helpers.js';
@@ -73,6 +73,22 @@ describe('createPackage', () => {
     const { db } = setup();
     assert.throws(() => createPackage(db, { code: 'PKG-T-01', slug: 'other', dataOrigin: 'synthetic', actorId: ACTOR, content: content() }), /UNIQUE/);
     assert.equal(get<{ n: number }>(db, 'SELECT COUNT(*) AS n FROM packages')?.n, 1);
+  });
+});
+
+describe('staff catalogue', () => {
+  test('shows a draft before publication and keeps immutable history after a revision', () => {
+    const { db, packageId, versionId } = setup();
+    assert.equal(listPackagesForStaff(db).find((p) => p.id === packageId)?.draft?.id, versionId);
+    assert.equal(listPackagesForStaff(db).find((p) => p.id === packageId)?.live, undefined);
+    publish(db, { draftId: versionId, actorId: ACTOR, note: 'First release' });
+    const revised = restoreVersion(db, { versionId, actorId: ACTOR });
+    const row = listPackagesForStaff(db).find((p) => p.id === packageId);
+    assert.equal(row?.live?.id, versionId);
+    assert.equal(row?.draft?.id, revised.draftId);
+    assert.deepEqual(listPackageHistory(db, packageId).map((v) => [v.id, v.status]), [
+      [revised.draftId, 'draft'], [versionId, 'published'],
+    ]);
   });
 });
 

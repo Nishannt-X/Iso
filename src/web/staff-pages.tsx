@@ -18,7 +18,7 @@ export interface Viewer {
   csrfToken: string;
 }
 
-export type StaffSection = 'inbox' | 'activity' | null;
+export type StaffSection = 'inbox' | 'packages' | 'activity' | null;
 
 export const ROLE_LABEL: Record<Role, string> = { admin: 'Admin', agent: 'Consultant' };
 
@@ -39,6 +39,7 @@ export function StaffShell(props: { ctx: PageContext; viewer: Viewer | null; tit
   const nav = viewer ? (
     <nav class="staff-nav" aria-label="Staff">
       <a href="/staff/inbox" aria-current={props.section === 'inbox' ? 'page' : undefined}>Inbox</a>
+      {viewer.role === 'admin' ? <a href="/staff/packages" aria-current={props.section === 'packages' ? 'page' : undefined}>Packages</a> : null}
       {viewer.role === 'admin' ? <a href="/staff/activity" aria-current={props.section === 'activity' ? 'page' : undefined}>Activity</a> : null}
       <span class="who">{viewer.name} · {ROLE_LABEL[viewer.role]}</span>
       <form method="post" action="/staff/logout">

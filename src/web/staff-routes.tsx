@@ -2,14 +2,16 @@ import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { createMiddleware } from 'hono/factory';
-import type { DatabaseSync } from '../db/db.js';
-import { DomainError } from '../domain/packages.js';
+import { get, type DatabaseSync } from '../db/db.js';
+import { emptyPackageForm, formFromBody, formFromVersion, parsePackageForm } from '../domain/package-form.js';
+import { createPackage, DomainError, listPackageHistory, listPackagesForStaff, publish, restoreVersion, saveDraft, type PackageAdminRow } from '../domain/packages.js';
 import { RateLimiter } from '../domain/rate-limit.js';
 import {
   authenticate, csrfMatches, endSession, listAssignable, resolveSession, startSession, type StaffSession, type StaffUser,
 } from '../domain/staff.js';
 import { ACTIVITY_LIMIT, addNote, assignEnquiry, changeStatus, getWorkspace, listActivity, listInbox, parseInboxQuery, recordReply, saveReplyDraft } from '../domain/triage.js';
-import type { PageContext } from './pages.js';
+import { PackageEditorPage, PackageHistoryPage, PackageListPage } from './package-cms-pages.js';
+import { PackagePage, type PageContext } from './pages.js';
 import { clientKey, isSameSite } from './request.js';
 import { ActivityPage, InboxPageView, LoginPage, StaffMessage, type Viewer } from './staff-pages.js';
 import { DONE_TEXT, WorkspacePage, type ProblemArea, type Retained } from './workspace-page.js';
@@ -49,7 +51,7 @@ export interface StaffEnv {
 type ErrorStatus = 400 | 403 | 404 | 409 | 413 | 422 | 429;
 
 const doc = (el: { toString(): string }): string => `<!DOCTYPE html>${el.toString()}`;
-const BODY_LIMIT_BYTES = 32 * 1024;
+const BODY_LIMIT_BYTES = 256 * 1024; // a 60-day package itinerary can be much longer than an enquiry reply
 const ID = /^\d{1,9}$/;
 /** Where sign-in may send someone afterwards: a path under /staff, nothing else (no query, no other host). */
 const SAFE_NEXT = /^\/staff\/[a-z0-9/-]{1,100}$/;
@@ -254,6 +256,116 @@ export function registerStaffRoutes(app: Hono, db: DatabaseSync, ctx: PageContex
       return 'recorded';
     }),
   );
+
+  // ---- package CMS (admin only) ------------------------------------------
+
+  const packageRow = (raw: string | undefined): PackageAdminRow | undefined =>
+    raw && ID.test(raw) ? listPackagesForStaff(db).find((p) => p.id === Number(raw)) : undefined;
+  const packageMissing = (c: Context<StaffEnv>) => message(c, 404, 'Package not found', 'That package does not exist.', sessionViewer(c), { href: '/staff/packages', text: 'All packages' });
+  const packageHistory = (c: Context<StaffEnv>, row: PackageAdminRow, problem?: string, done?: string, status: 200 | ErrorStatus = 200) =>
+    page(c, <PackageHistoryPage ctx={ctx} viewer={sessionViewer(c)} row={row} history={listPackageHistory(db, row.id)} problem={problem} done={done} />, status);
+  const cmsErrorStatus = (err: DomainError): ErrorStatus => DOMAIN_STATUS[err.code];
+  const parseLock = (body: Record<string, unknown>): number => {
+    const raw = text(body, 'lock');
+    if (!ID.test(raw)) throw new DomainError('conflict', 'This page is out of date. Reload it and try again.');
+    return Number(raw);
+  };
+
+  staff.get('/packages', adminOnly, (c) => page(c, <PackageListPage ctx={ctx} viewer={sessionViewer(c)} rows={listPackagesForStaff(db)} />));
+  staff.get('/packages/new', adminOnly, (c) => page(c, <PackageEditorPage ctx={ctx} viewer={sessionViewer(c)} form={emptyPackageForm()} />));
+  staff.post('/packages/new', adminOnly, async (c) => {
+    const form = formFromBody(await c.req.parseBody());
+    try {
+      if (get(db, 'SELECT 1 FROM packages WHERE code = ? OR slug = ?', form.code.trim(), form.slug.trim())) {
+        throw new DomainError('validation', 'That package code or URL is already in use.');
+      }
+      const created = createPackage(db, {
+        code: form.code.trim(), slug: form.slug.trim(), dataOrigin: 'synthetic',
+        actorId: c.get('session').user.id, content: parsePackageForm(form), changeNote: form.changeNote.trim(),
+      });
+      return c.redirect(`/staff/packages/${created.packageId}?done=created`, 303);
+    } catch (err) {
+      if (!(err instanceof DomainError)) throw err;
+      return page(c, <PackageEditorPage ctx={ctx} viewer={sessionViewer(c)} form={form} error={err.message} issues={err.issues} />, cmsErrorStatus(err));
+    }
+  });
+
+  staff.get('/packages/:id', adminOnly, (c) => {
+    const row = packageRow(c.req.param('id'));
+    if (!row) return packageMissing(c);
+    const done = c.req.query('done');
+    const messages: Record<string, string> = { created: 'Package draft created.', saved: 'Draft saved.', published: 'Version published. The public page is updated.', restored: 'A private draft was restored.' };
+    return packageHistory(c, row, undefined, done ? messages[done] : undefined);
+  });
+  staff.get('/packages/:id/edit', adminOnly, (c) => {
+    const row = packageRow(c.req.param('id'));
+    if (!row) return packageMissing(c);
+    if (!row.draft) return c.redirect(`/staff/packages/${row.id}`, 303);
+    return page(c, <PackageEditorPage ctx={ctx} viewer={sessionViewer(c)} packageId={row.id} lock={row.draft.lockVersion} form={formFromVersion(row.draft)} />);
+  });
+  staff.post('/packages/:id/edit', adminOnly, async (c) => {
+    const row = packageRow(c.req.param('id'));
+    if (!row) return packageMissing(c);
+    if (!row.draft) return packageHistory(c, row, 'Start a revision before editing.', undefined, 409);
+    const body = await c.req.parseBody();
+    const form = formFromBody(body);
+    form.code = row.code;
+    form.slug = row.slug;
+    try {
+      const lock = parseLock(body);
+      saveDraft(db, { versionId: row.draft.id, expectedLockVersion: lock, content: parsePackageForm(form), changeNote: form.changeNote.trim() });
+      return c.redirect(`/staff/packages/${row.id}?done=saved`, 303);
+    } catch (err) {
+      if (!(err instanceof DomainError)) throw err;
+      // Keep the submitted lock so a stale page cannot overwrite a colleague's newer draft on retry.
+      const submittedLock = ID.test(text(body, 'lock')) ? Number(text(body, 'lock')) : -1;
+      return page(c, <PackageEditorPage ctx={ctx} viewer={sessionViewer(c)} packageId={row.id} lock={submittedLock} form={form} error={err.message} issues={err.issues} />, cmsErrorStatus(err));
+    }
+  });
+  staff.get('/packages/:id/preview', adminOnly, (c) => {
+    const row = packageRow(c.req.param('id'));
+    if (!row) return packageMissing(c);
+    if (!row.draft) return packageHistory(c, row, 'Start a revision before previewing.', undefined, 409);
+    return page(c, <PackagePage v={row.draft} origin={row.origin} ctx={ctx} previewPackageId={row.id} />);
+  });
+  staff.post('/packages/:id/revise', adminOnly, (c) => {
+    const row = packageRow(c.req.param('id'));
+    if (!row) return packageMissing(c);
+    if (row.draft) return c.redirect(`/staff/packages/${row.id}/edit`, 303);
+    if (!row.live) return packageHistory(c, row, 'There is no published version to revise.', undefined, 409);
+    restoreVersion(db, { versionId: row.live.id, actorId: c.get('session').user.id });
+    return c.redirect(`/staff/packages/${row.id}/edit`, 303);
+  });
+  staff.post('/packages/:id/publish', adminOnly, async (c) => {
+    const row = packageRow(c.req.param('id'));
+    if (!row) return packageMissing(c);
+    if (!row.draft) return packageHistory(c, row, 'There is no draft to publish.', undefined, 409);
+    const body = await c.req.parseBody();
+    try {
+      const note = text(body, 'note').trim();
+      if (!note || note.length > 300) throw new DomainError('validation', 'Enter a short note describing the change.');
+      publish(db, { draftId: row.draft.id, actorId: c.get('session').user.id, note, expectedLockVersion: parseLock(body) });
+      return c.redirect(`/staff/packages/${row.id}?done=published`, 303);
+    } catch (err) {
+      if (!(err instanceof DomainError)) throw err;
+      return packageHistory(c, packageRow(c.req.param('id')) ?? row, [err.message, ...err.issues].join(' '), undefined, cmsErrorStatus(err));
+    }
+  });
+  staff.post('/packages/:id/restore/:version', adminOnly, async (c) => {
+    const row = packageRow(c.req.param('id'));
+    if (!row) return packageMissing(c);
+    const raw = c.req.param('version');
+    const version = ID.test(raw) ? listPackageHistory(db, row.id).find((v) => v.id === Number(raw)) : undefined;
+    if (!version || version.status === 'draft') return packageHistory(c, row, 'Choose a published version from this package.', undefined, 404);
+    const body = await c.req.parseBody();
+    try {
+      restoreVersion(db, { versionId: version.id, actorId: c.get('session').user.id, discardDraft: text(body, 'discard') === 'yes' });
+      return c.redirect(`/staff/packages/${row.id}?done=restored`, 303);
+    } catch (err) {
+      if (!(err instanceof DomainError)) throw err;
+      return packageHistory(c, row, err.message, undefined, cmsErrorStatus(err));
+    }
+  });
 
   // ---- activity (admin only) ----------------------------------------------
 

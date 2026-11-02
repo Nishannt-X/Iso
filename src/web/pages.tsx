@@ -2,6 +2,7 @@ import { HOME_HERO, photosFor } from '../domain/photos.js';
 import type { DataOrigin, PackageVersion } from '../domain/packages.js';
 import { Credit, Layout, Picture, SITE_NAME, type PageMeta } from './layout.js';
 import { cleanSummary, duration, formatInr, fromPrice, GST_NOTE, metaDescription, PRICE_BASIS, seasonDates, starLabel } from './format.js';
+import { STAFF_CSS } from './staff-styles.js';
 
 // Server-rendered public pages. JSX output is escaped by Hono; nothing here builds HTML from strings.
 
@@ -95,7 +96,7 @@ export function HomePage({ packages, origins, ctx }: { packages: PackageVersion[
   );
 }
 
-export function PackagePage({ v, origin, ctx }: { v: PackageVersion; origin: DataOrigin | undefined; ctx: PageContext }) {
+export function PackagePage({ v, origin, ctx, previewPackageId }: { v: PackageVersion; origin: DataOrigin | undefined; ctx: PageContext; previewPackageId?: number }) {
   const { hero, band } = photosFor(v.packageCode);
   const stars = starLabel(v.starRating);
   const from = fromPrice(v.seasons);
@@ -104,9 +105,10 @@ export function PackagePage({ v, origin, ctx }: { v: PackageVersion; origin: Dat
   const meta: PageMeta = {
     title: `${v.title}, ${duration(v)} | ${SITE_NAME}`,
     description: metaDescription(summary),
-    path: packagePath(v.packageSlug),
+    path: previewPackageId === undefined ? packagePath(v.packageSlug) : `/staff/packages/${previewPackageId}/preview`,
     siteUrl: ctx.siteUrl,
     image: hero,
+    noindex: previewPackageId !== undefined,
   };
   const heading = (
     <>
@@ -115,7 +117,8 @@ export function PackagePage({ v, origin, ctx }: { v: PackageVersion; origin: Dat
     </>
   );
   return (
-    <Layout meta={meta} overImage={hero !== null} hasBook>
+    <Layout meta={meta} overImage={hero !== null} hasBook extraCss={previewPackageId === undefined ? undefined : STAFF_CSS}>
+      {previewPackageId === undefined ? null : <div class="preview-banner" role="status"><strong>Private preview · version {v.versionNo}</strong><span>This draft is not public.</span><a href={`/staff/packages/${previewPackageId}/edit`}>Back to editor</a></div>}
       {hero ? (
         <section class="hero short has-credit" aria-labelledby="pkg-title">
           <Picture photo={hero} sizes="100vw" eager />
@@ -227,7 +230,7 @@ export function PackagePage({ v, origin, ctx }: { v: PackageVersion; origin: Dat
               <p class="amount">Price to be confirmed</p>
             )}
           </div>
-          <a class="btn" href={enquirePath(v.packageSlug)}>Enquire</a>
+          {previewPackageId === undefined ? <a class="btn" href={enquirePath(v.packageSlug)}>Enquire</a> : <p class="fineprint">Enquiries open only on published pages.</p>}
         </aside>
       </div>
     </Layout>

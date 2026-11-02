@@ -123,4 +123,32 @@ export const STAFF_CSS = `
 .log li{display:grid;gap:.15rem 1.5rem;padding:.7rem 0;border-bottom:1px solid var(--line);font-size:.9375rem}
 @media(min-width:48rem){.log li{grid-template-columns:12rem minmax(0,1fr)}}
 .log .when{color:var(--muted);font-size:.875rem}
+
+/* package CMS */
+.cms-head{display:flex;align-items:end;justify-content:space-between;flex-wrap:wrap;gap:1rem 2rem}
+.cms-list{margin-top:1.5rem;border-top:1px solid var(--line)}
+.cms-list li{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:1rem .25rem;border-bottom:1px solid var(--line)}
+.cms-list a{display:grid;gap:.15rem;text-decoration:none;color:var(--ink)}
+.cms-list a strong{font-weight:500;font-size:1.125rem}
+.cms-list a span{font-size:.875rem;color:var(--muted)}
+.cms .panel{margin-top:1.5rem}
+.cms .panel h2{font-size:1.25rem;margin-bottom:.5rem}
+.cms .actions{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:1rem}
+.cms-actions>p{color:var(--muted)}
+.cms-publish{margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--line);max-width:32rem}
+.cms-publish .btn{margin-top:.75rem}
+.cms-fields{display:grid;grid-template-columns:minmax(0,1fr);gap:.9rem 1.25rem;margin-top:1rem}
+@media(min-width:48rem){.cms-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.cms-fields .full{grid-column:1/-1}}
+.cms-form>.field{max-width:42rem;margin-top:1.5rem}
+.cms-form textarea{max-width:none;width:100%;font:inherit}
+.cms-form .field input{max-width:none;width:100%}
+.cms-history{list-style:none;margin-top:1rem;border-top:1px solid var(--line)}
+.cms-history li{display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:1rem;padding:1rem 0;border-bottom:1px solid var(--line)}
+.cms-history p{margin:.25rem 0;color:var(--muted)}
+.cms-history small{color:var(--muted)}
+.cms-history form{display:grid;gap:.5rem;justify-items:start}
+.cms-history .check{font-size:.875rem}
+.preview-banner{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:.5rem 1.5rem;padding:.65rem 1rem;background:#fff4d6;color:#3d2c00;font-size:.875rem}
+.preview-banner a{color:inherit;font-weight:600}
+@media(max-width:35rem){.cms-list li{align-items:start;flex-direction:column}}
 `;

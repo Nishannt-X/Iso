@@ -201,6 +201,30 @@ export function getDraftForPackage(db: DatabaseSync, packageId: number): Package
   return row && hydrate(db, row);
 }
 
+export interface PackageAdminRow {
+  id: number;
+  code: string;
+  slug: string;
+  origin: DataOrigin;
+  draft: PackageVersion | undefined;
+  live: PackageVersion | undefined;
+}
+
+/** Staff catalogue: keep drafts visible here while the public list stays published-only. */
+export function listPackagesForStaff(db: DatabaseSync): PackageAdminRow[] {
+  return all<{ id: number; code: string; slug: string; data_origin: DataOrigin }>(
+    db, 'SELECT id, code, slug, data_origin FROM packages ORDER BY code',
+  ).map((p) => ({
+    id: p.id, code: p.code, slug: p.slug, origin: p.data_origin,
+    draft: getDraftForPackage(db, p.id), live: getLiveVersionBySlug(db, p.slug),
+  }));
+}
+
+export function listPackageHistory(db: DatabaseSync, packageId: number): PackageVersion[] {
+  return all<VersionRow>(db, `${VERSION_SELECT} WHERE v.package_id = ? ORDER BY v.version_no DESC`, packageId)
+    .map((r) => hydrate(db, r));
+}
+
 // ---------------------------------------------------------------------------
 // Writes. Each public function is one transaction; helpers below are not re-entrant.
 // ---------------------------------------------------------------------------
