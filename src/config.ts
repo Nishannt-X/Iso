@@ -1,3 +1,5 @@
+import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from './domain/passwords.js';
+
 // The only module that reads process.env. Variable names are documented in README.md.
 export interface Config {
   port: number;
@@ -6,6 +8,8 @@ export interface Config {
   siteUrl: string;
   /** True only when exactly one trusted reverse proxy sets X-Forwarded-For. Used to find the client for rate limits. */
   trustProxy: boolean;
+  /** Password for the three synthetic demo staff accounts that `npm run db:reset` creates. null = the documented demo password. */
+  demoStaffPassword: string | null;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -23,5 +27,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (!parsed || !/^https?:$/.test(parsed.protocol) || parsed.pathname !== '/') {
     throw new Error(`SITE_URL must be an http(s) origin such as https://example.com, got "${env.SITE_URL}"`);
   }
-  return { port, dbPath: env.DB_PATH || 'data/kochi-tours.db', siteUrl, trustProxy: env.TRUST_PROXY === '1' };
+  const demoStaffPassword = env.DEMO_STAFF_PASSWORD || null;
+  if (demoStaffPassword !== null && (demoStaffPassword.length < MIN_PASSWORD_LENGTH || demoStaffPassword.length > MAX_PASSWORD_LENGTH)) {
+    throw new Error(`DEMO_STAFF_PASSWORD must be ${MIN_PASSWORD_LENGTH} to ${MAX_PASSWORD_LENGTH} characters`);
+  }
+  return { port, dbPath: env.DB_PATH || 'data/kochi-tours.db', siteUrl, trustProxy: env.TRUST_PROXY === '1', demoStaffPassword };
 }

@@ -4,7 +4,7 @@ import { loadConfig } from '../src/config.js';
 
 describe('loadConfig', () => {
   test('defaults: port 3000, local db, site URL from the port', () => {
-    assert.deepEqual(loadConfig({}), { port: 3000, dbPath: 'data/kochi-tours.db', siteUrl: 'http://localhost:3000', trustProxy: false });
+    assert.deepEqual(loadConfig({}), { port: 3000, dbPath: 'data/kochi-tours.db', siteUrl: 'http://localhost:3000', trustProxy: false, demoStaffPassword: null });
     assert.equal(loadConfig({ PORT: '4100' }).siteUrl, 'http://localhost:4100');
   });
   test('SITE_URL is used without a trailing slash', () => {

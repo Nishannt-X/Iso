@@ -2,8 +2,8 @@ import { loadConfig } from '../src/config.js';
 import { all } from '../src/db/db.js';
 import { resetDatabase } from '../src/db/seed.js';
 
-const { dbPath } = loadConfig();
-const db = resetDatabase(dbPath);
+const { dbPath, demoStaffPassword } = loadConfig();
+const db = resetDatabase(dbPath, { staffPassword: demoStaffPassword });
 const rows = all<{ code: string; status: string }>(
   db,
   `SELECT p.code, COALESCE(v.status, 'none') AS status FROM packages p

@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, rmSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { createEnquiry } from '../domain/enquiries.js';
+import { hashPasswordSync } from '../domain/passwords.js';
 import { createPackage, publish, SYNTHETIC_MARKER, type DataOrigin, type VersionContent } from '../domain/packages.js';
 import { get, initSchema, isInitialised, openDb, run, type DatabaseSync } from './db.js';
 import type { Season } from '../domain/seasons.js';
@@ -166,14 +167,42 @@ const SEED_PACKAGES: SeedPackage[] = [
   },
 ];
 
-/** Placeholder staff user that owns seeded versions. Its password hash is not a valid hash, so nobody can log in as it. */
+/** Placeholder staff user that owns seeded versions. It is inactive and its hash is not a valid hash, so nobody can sign in as it. */
 const SEED_USER_EMAIL = 'seed@system.invalid';
 
+/**
+ * Synthetic staff for reviewers, on the reserved .invalid domain (no mailbox can exist). They share one password,
+ * documented in README.md as a development credential: set DEMO_STAFF_PASSWORD before `npm run db:reset` to use
+ * your own, and never run a public deployment on the default.
+ */
+export const DEMO_STAFF_PASSWORD = 'demo-staff-password';
+export const DEMO_STAFF = [
+  { email: 'admin@staff.example.invalid', name: 'Demo Admin', role: 'admin' },
+  { email: 'consultant1@staff.example.invalid', name: 'Demo Consultant One', role: 'agent' },
+  { email: 'consultant2@staff.example.invalid', name: 'Demo Consultant Two', role: 'agent' },
+] as const;
+
+export interface SeedOptions {
+  /** Password for the demo staff accounts; defaults to DEMO_STAFF_PASSWORD. */
+  staffPassword?: string | null;
+}
+
+// ponytail: one hash per distinct password per process, shared by the three demo accounts (equal salt, demo data only),
+// because scrypt is deliberately slow and the tests rebuild the database often. Real accounts each get their own salt.
+const demoHashes = new Map<string, string>();
+const demoHash = (password: string): string => {
+  let hash = demoHashes.get(password);
+  if (!hash) demoHashes.set(password, (hash = hashPasswordSync(password)));
+  return hash;
+};
+
 /** Inserts the demo catalogue into an initialised, empty database. */
-export function seedDatabase(db: DatabaseSync): { packages: number; published: number } {
+export function seedDatabase(db: DatabaseSync, options: SeedOptions = {}): { packages: number; published: number } {
   const actorId = Number(
-    run(db, "INSERT INTO staff_users (email, name, role, password_hash) VALUES (?, 'Seed (system)', 'admin', 'LOGIN-DISABLED')", SEED_USER_EMAIL).lastInsertRowid,
+    run(db, "INSERT INTO staff_users (email, name, role, password_hash, active) VALUES (?, 'Seed (system)', 'admin', 'LOGIN-DISABLED', 0)", SEED_USER_EMAIL).lastInsertRowid,
   );
+  const hash = demoHash(options.staffPassword ?? DEMO_STAFF_PASSWORD);
+  for (const u of DEMO_STAFF) run(db, 'INSERT INTO staff_users (email, name, role, password_hash) VALUES (?, ?, ?, ?)', u.email, u.name, u.role, hash);
   let published = 0;
   for (const p of SEED_PACKAGES) {
     // Order: package, draft version with its children, then publish. There is no FK cycle to work around.
@@ -230,7 +259,7 @@ function assertSafeToReplace(path: string): void {
 }
 
 /** Deletes and rebuilds the database at `path` with the schema and demo data. Running it twice gives the same result. */
-export function resetDatabase(path: string): DatabaseSync {
+export function resetDatabase(path: string, options: SeedOptions = {}): DatabaseSync {
   if (path !== ':memory:') {
     assertSafeToReplace(path);
     mkdirSync(dirname(path), { recursive: true });
@@ -238,6 +267,6 @@ export function resetDatabase(path: string): DatabaseSync {
   }
   const db = openDb(path);
   initSchema(db);
-  seedDatabase(db);
+  seedDatabase(db, options);
   return db;
 }

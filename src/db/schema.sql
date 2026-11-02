@@ -1,6 +1,6 @@
 -- Company A Kochi tour operator: S1 schema (catalogue, versions, pricing config).
 -- Applied to an empty database by initSchema(); `npm run db:reset` rebuilds from scratch.
--- Later slices append their tables (sessions, AI extractions...) here.
+-- Later slices append their tables (AI extractions...) here.
 -- Foreign keys are enforced per connection by openDb() (PRAGMA foreign_keys=ON).
 
 CREATE TABLE staff_users (
@@ -10,6 +10,8 @@ CREATE TABLE staff_users (
   -- agent: triage enquiries. admin: also create, edit and publish packages.
   role          TEXT NOT NULL CHECK (role IN ('admin', 'agent')),
   password_hash TEXT NOT NULL,
+  -- 0 = cannot sign in and cannot be assigned work (the seed's system owner, or a staff member who left).
+  active        INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
   created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
@@ -277,4 +279,22 @@ CREATE TABLE outbox_messages (
 CREATE UNIQUE INDEX ux_one_acknowledgement_per_enquiry
   ON outbox_messages(enquiry_id) WHERE kind = 'acknowledgement';
 
-PRAGMA user_version = 2;
+-- ---------------------------------------------------------------------------
+-- S4: staff sessions.
+-- ---------------------------------------------------------------------------
+
+-- The browser holds a random 256-bit token in an HttpOnly cookie. Only its SHA-256 is stored, so a copy of
+-- the database does not yield usable cookies. csrf_token is the per-session synchroniser token printed into
+-- every staff form. A session ends at expires_at (absolute) or when idle for too long (last_seen_at).
+CREATE TABLE staff_sessions (
+  id           TEXT PRIMARY KEY,
+  user_id      INTEGER NOT NULL REFERENCES staff_users(id) ON DELETE CASCADE,
+  csrf_token   TEXT NOT NULL,
+  created_at   TEXT NOT NULL,
+  last_seen_at TEXT NOT NULL,
+  expires_at   TEXT NOT NULL
+);
+CREATE INDEX ix_staff_sessions_user ON staff_sessions(user_id);
+CREATE INDEX ix_staff_sessions_expires ON staff_sessions(expires_at);
+
+PRAGMA user_version = 3;
