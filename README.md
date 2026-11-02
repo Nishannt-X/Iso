@@ -2,7 +2,7 @@
 
 Package catalogue with seasonal pricing, versioned package content for staff, and AI-assisted enquiry triage with human-approved replies. Built in slices; see `docs/PROJECT_BRIEF.md` for scope, assumptions and status, and `docs/DECISIONS.md` for why.
 
-**Status:** slices S0 and S1 only (catalogue, pricing engine, versioning, seed, `GET /` and `GET /healthz`). The enquiry form, staff screens and AI triage are not built yet.
+**Status:** slices S0 to S2: catalogue, pricing engine, versioning, seed, and the public site (home/list, package detail, sitemap, robots, 404). The enquiry form, staff screens and AI triage are not built yet; the Enquire button points at a placeholder until S3.
 
 ## Quickstart
 Requires Node `>=22.13` (see `.nvmrc`).

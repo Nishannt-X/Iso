@@ -1,11 +1,11 @@
 # Project Brief
 
 > Source of truth for scope. Agents read this first. Update when scope changes (note why in DECISIONS.md).
-> Client facts (sample packages, sample enquiry) live in [`docs/CLIENT_BRIEF.md`](CLIENT_BRIEF.md). Consult it before touching seed data, pricing or enquiry handling.
+> The full client brief is transcribed verbatim in [`docs/CLIENT_BRIEF.md`](CLIENT_BRIEF.md). Check it before touching seed data, pricing, design or enquiry handling. Where this file goes beyond it, the text says so.
 
 - **Name:** Company A Kochi tour operator (Problem 2)
 - **One-line purpose:** Let travellers browse tour packages and send an enquiry, and let staff manage package content (versioned) and triage enquiries with AI-assisted, human-approved replies.
-- **Users / who benefits:** Travellers (public, no login); Company A staff with two roles: `agent` (triage enquiries) and `admin` (also create, edit and publish packages).
+- **Users / who benefits:** The brief's CORE BUILD names two roles: traveller and staff admin. The build reads "traveller" as the public visitor (no login) and models staff as `admin` (create, edit, publish packages) plus `agent` (triage enquiries). The `agent` split is this build's assumption, drawn from the brief's consultant role.
 - **Owner / approver of merges:** Human project owner.
 
 ## Goal & success criteria (verifiable)
@@ -13,7 +13,7 @@
 2. The product has a frontend, backend, database, sign-in, and roles (staff only: `admin`, `agent`).
 3. AI or automation works in practice, including wrong or uncertain outcomes; the UI supports phone layouts and loading, empty, and error states.
 4. Important logic has tests, inputs are validated, access is controlled, and no secrets or real personal data are committed.
-5. Submission is one ZIP of at most 25 MB containing exactly a TDD (PDF or Word) and `deployment.md`; the TDD begins with the public GitHub URL and includes a live app URL if deployed.
+5. Submission rule relayed by the owner (**not in the client brief**): one ZIP of at most 25 MB containing exactly a TDD (PDF or Word) and `deployment.md`; the TDD begins with the public GitHub URL and includes a live app URL if deployed.
 
 ## In scope
 The core slice, delivered in slices on one branch (`feat/kochi-tours-core`). Status in brackets.
@@ -22,7 +22,7 @@ The core slice, delivered in slices on one branch (`feat/kochi-tours-core`). Sta
 |---|---|---|
 | S0 | Scope docs, scaffold, `node:sqlite` spike, thin `GET /` | this branch |
 | S1 | Schema, triggers, versioned catalogue, seasonal pricing, seed | this branch |
-| S2 | Screens 1–2 (home/list, package detail), sitemap, robots, 404 | planned |
+| S2 | Screens 1–2 (home/list, package detail), seasonal price display, photos with provenance, sitemap, robots, 404 | this branch |
 | S3 | Screens 3–4 (enquiry form, acknowledgement), consent, honeypot, rate limit | planned |
 | S4 | Screens 5–6 (staff login, inbox), sessions, CSRF, role checks | planned |
 | S5 | AI extraction (live Anthropic primary, labelled rules fallback), ranking, drafting, price guard, screen 7 | planned |
@@ -37,24 +37,24 @@ Deliverables of S0+S1: a running server with `GET /healthz` and `GET /` (a plain
 ## Non-goals (explicitly out)
 - Full breadth of an unselected problem statement; prioritize the core slice.
 - Features not justified by the selected problem statement.
-- Traveller accounts, redirect engine, CSV import, signed preview links, second language, itinerary diff view.
-- Any mock or replayed LLM at runtime. The AI path is live or an honestly labelled rules fallback.
+- Traveller accounts, CSV import, signed preview links, itinerary diff view. Deferred although the brief mentions them (outside its CORE BUILD): the redirect engine for 140 old URLs, Hindi and German, blog CMS, quote builder, maps, and search beyond the package list.
+- Any mock or replayed LLM at runtime. This is a project decision, not a brief requirement: the brief only says to mock payments, messages and outside systems. The AI path is live or an honestly labelled rules fallback.
 - Deploying (human only; the repo only ships a Dockerfile and `deployment.md` in a later slice).
 
 ## Assumptions (all labelled in the UI and docs; none are claims from the brief)
-The brief's sample facts are in [`docs/CLIENT_BRIEF.md`](CLIENT_BRIEF.md); the rest of the brief prose is not yet transcribed there. Everything in this table is an assumption of the build unless row A1 says otherwise.
+The brief is in [`docs/CLIENT_BRIEF.md`](CLIENT_BRIEF.md). Everything in this table is an assumption of the build unless row A1 or the row itself says it comes from the brief.
 
 | ID | Assumption |
 |---|---|
 | A1 | **Brief facts used (see `CLIENT_BRIEF.md`):** PKG-KL-07 "Munnar, Thekkady and Alleppey houseboat", 6 days, 4-star, published, Peak Oct–Mar ₹32,500 and Monsoon Jun–Sep ₹24,900 per person. PKG-SI-12 "Madurai, Rameswaram and Kanyakumari", 5 days, 3-star, All year ₹18,750 per person, DRAFT. Sample enquiry: "Hi, 2 adults and 1 kid, Kerala 5-6 nights in December, budget around 1.2 lakh total, houseboat a must". |
-| A2 | Prices are whole rupees per person, twin share. The adult fare is the listed per-person rate. |
-| A3 | **No GST rate is configured.** Figures read "before GST; tax treatment to be confirmed by Company A". A rate applies only if staff set `gst_rate_bp`; GST is rounded half up on the GST line only. |
-| A4 | **No child rule is invented.** With no `child_pct`, the child fare is unpriced and the quote is `partial`. Child ages are recorded, but no age band is applied. |
-| A5 | **No single supplement is invented.** With an odd adult count and no `single_supp_inr`, the quote is `partial` and the figure is a lower bound. |
+| A2 | The brief lists prices "per person" and its CONSTRAINTS require prices to state the per-person basis, twin sharing and GST. The build therefore labels every price "per person, twin sharing" (twin sharing as the basis is the brief's requirement; the sample table itself says only "per person"). Prices are whole rupees. The adult fare is the listed rate. |
+| A3 | **No GST rate is configured**, because the brief requires GST to be stated but gives no rate and does not say whether the sample prices include it. Public prices read "GST: pending, to be confirmed by Company A". The quote engine applies a rate only if staff set `gst_rate_bp`; GST is rounded half up on the GST line only. |
+| A4 | **No child rule is invented** (the brief gives none). With no `child_pct`, the child fare is unpriced and the quote is `partial`. Child ages are recorded, but no age band is applied. |
+| A5 | **No single supplement is invented** (the brief gives none). With an odd adult count and no `single_supp_inr`, the quote is `partial` and the figure is a lower bound. |
 | A6 | The brief gives the season **months** (Peak Oct–Mar, Monsoon Jun–Sep). The exact day boundaries (Oct 1, Mar 31, Jun 1, Sep 30) are **ASSUMED** and flagged `rangeAssumed`. The brief has no Apr–May price, so those dates return `unavailable`. No shoulder season is invented. |
 | A7 | PKG-SI-12's brief season "All year" is stored as 01-01..12-31 with `rangeAssumed` false, since "all year" has no boundary to guess. |
 | A8 | Season is decided by start date, or by month when only a month is known. A stay or month spanning seasons is priced at the cheapest covered season as a lower bound, with a reason code. |
-| A9 | Travellers do not log in. They follow an unguessable status link. The staff table has no traveller role. |
+| A9 | Travellers do not log in (assumption: the brief's "traveller" role is the public visitor). They follow an unguessable status link. The staff table has no traveller role. |
 | A10 | The sample table (A1) is from the brief. `nights` (= days − 1), region labels, all itinerary, summary, inclusion and tag text, and the five `SYN-*` packages are **assumed or synthetic**. Seed rows record this in `packages.data_origin` and `change_note`. |
 | A11 | The slug is editable until a package's first publish, then locked. This replaces a redirect engine. |
 | A12 | All sample data is synthetic. No real personal data is stored or committed. |
@@ -64,7 +64,7 @@ The brief's sample facts are in [`docs/CLIENT_BRIEF.md`](CLIENT_BRIEF.md); the r
 - Package manager: npm; exact versions pinned in `package.json` and `package-lock.json`.
 - Hosting / environments: runs locally first; Dockerfile and `deployment.md` in a later slice. Deploying is human-only.
 - Performance, security, compliance constraints: Validate inputs, enforce access control, keep secrets and real personal data out of the repository, and keep the repository public through review. The Anthropic API key is set privately by the human in their own environment; it is never requested in chat, written to a file or committed.
-- Budget / deadlines: Seven days from when the step opens; exact opening time has not been provided.
+- Budget / deadlines: the client brief says ₹8.5 lakh and 7 weeks. Separately, the owner's assignment allows seven days from when the step opens (relayed, not in the client brief; opening time not provided).
 
 ## Commands (keep identical to AGENTS.md §0)
 setup: `npm ci` · run: `npm run dev` · test: `npm test` · lint: `npm run lint` · typecheck: `npm run typecheck` · build: `npm run build` · reset local DB: `npm run db:reset`
@@ -80,7 +80,7 @@ setup: `npm ci` · run: `npm run dev` · test: `npm test` · lint: `npm run lint
 | 3 | Package submission | TDD and `deployment.md` are verified inside one ZIP (S8). |
 
 ## Risks & open questions
-- Only the brief's sample table and sample enquiry are transcribed (`docs/CLIENT_BRIEF.md`). The owner should paste the remaining sections verbatim so later slices can check requirements against the real text.
+- Photographs are Creative Commons images from Wikimedia Commons used as placeholders (credited on each page). Company A must supply licensed photography before launch.
 - The live Anthropic path cannot be verified until the human sets `ANTHROPIC_API_KEY` locally and runs the check script (built in S5).
 - `node:sqlite` is experimental; `better-sqlite3` is the fallback behind `src/db/db.ts`.
 - SQLite needs a persistent volume on any deploy target.
