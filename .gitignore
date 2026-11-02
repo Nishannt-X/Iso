@@ -12,3 +12,5 @@ data/
 *.db-shm
 *.db-wal
 .playwright-mcp/
+submission.zip
+
