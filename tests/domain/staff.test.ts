@@ -11,7 +11,7 @@ const T0 = new Date('2026-11-02T10:00:00.000Z');
 const later = (ms: number): Date => new Date(T0.getTime() + ms);
 
 function setup(): DatabaseSync {
-  const db = resetDatabase(':memory:');
+  const db = resetDatabase(':memory:', { staffPassword: 'a-long-test-password' });
   const hash = hashPasswordSync('a-long-test-password', { N: 1024, r: 8, p: 1 });
   run(db, 'UPDATE staff_users SET password_hash = ? WHERE active = 1', hash);
   return db;
@@ -19,21 +19,30 @@ function setup(): DatabaseSync {
 const count = (db: DatabaseSync, sql: string): number => get<{ n: number }>(db, sql)?.n ?? -1;
 
 describe('demo staff seed', () => {
-  test('three synthetic accounts on a reserved domain: one admin, two consultants; the system owner cannot sign in', () => {
+  test('without a password, demo accounts are created inactive with login disabled and no default password', () => {
     const db = resetDatabase(':memory:');
-    const rows = all<{ email: string; role: string; active: number }>(db, 'SELECT email, role, active FROM staff_users ORDER BY id');
-    assert.deepEqual(rows.filter((r) => r.active === 1).map((r) => [r.email, r.role]), DEMO_STAFF.map((u) => [u.email, u.role]));
+    const rows = all<{ email: string; role: string; active: number; password_hash: string }>(
+      db,
+      'SELECT email, role, active, password_hash FROM staff_users ORDER BY id',
+    );
+    assert.deepEqual(rows.filter((r) => r.active === 1), []);
     assert.ok(rows.every((r) => r.email.endsWith('.invalid')));
-    assert.deepEqual(rows.filter((r) => r.active === 0).map((r) => r.email), ['seed@system.invalid']);
-    assert.ok(!all<{ password_hash: string }>(db, 'SELECT password_hash FROM staff_users').some((r) => r.password_hash.includes(DEMO_STAFF_PASSWORD)));
+    assert.ok(rows.every((r) => r.active === 0 && r.password_hash === 'LOGIN-DISABLED'));
   });
 
-  test('the demo password signs in, and DEMO_STAFF_PASSWORD (staffPassword) replaces it', async () => {
-    const db = resetDatabase(':memory:');
-    assert.equal((await authenticate(db, 'admin@staff.example.invalid', DEMO_STAFF_PASSWORD))?.role, 'admin');
-    const other = resetDatabase(':memory:', { staffPassword: 'another-demo-password' });
-    assert.equal(await authenticate(other, 'admin@staff.example.invalid', DEMO_STAFF_PASSWORD), null);
-    assert.ok(await authenticate(other, 'admin@staff.example.invalid', 'another-demo-password'));
+  test('providing staffPassword creates active demo accounts with that password', async () => {
+    const db = resetDatabase(':memory:', { staffPassword: 'my-demo-password' });
+    const rows = all<{ email: string; role: string; active: number }>(db, 'SELECT email, role, active FROM staff_users ORDER BY id');
+    assert.deepEqual(rows.filter((r) => r.active === 1).map((r) => [r.email, r.role]), DEMO_STAFF.map((u) => [u.email, u.role]));
+    assert.ok(await authenticate(db, 'admin@staff.example.invalid', 'my-demo-password'));
+    assert.equal(await authenticate(db, 'admin@staff.example.invalid', 'wrong-password'), null);
+  });
+
+  test('requireNonDefault rejects the known default password', () => {
+    assert.throws(
+      () => resetDatabase(':memory:', { staffPassword: DEMO_STAFF_PASSWORD, requireNonDefault: true }),
+      /A non-default staff password is required/,
+    );
   });
 });
 
@@ -148,7 +157,7 @@ describe('csrfMatches and listAssignable', () => {
   });
 
   test('listAssignable lists active staff only, consultants first', () => {
-    const db = resetDatabase(':memory:');
+    const db = resetDatabase(':memory:', { staffPassword: 'a-long-test-password' });
     assert.deepEqual(listAssignable(db).map((u) => u.name), ['Demo Consultant One', 'Demo Consultant Two', 'Demo Admin']);
   });
 });

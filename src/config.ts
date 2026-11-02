@@ -8,8 +8,17 @@ export interface Config {
   siteUrl: string;
   /** True only when exactly one trusted reverse proxy sets X-Forwarded-For. Used to find the client for rate limits. */
   trustProxy: boolean;
-  /** Password for the three synthetic demo staff accounts that `npm run db:reset` creates. null = the documented demo password. */
+  /** Password for the three synthetic demo staff accounts that `npm run db:reset` creates. null = login disabled. */
   demoStaffPassword: string | null;
+}
+
+export function isLoopbackOrigin(origin: string): boolean {
+  try {
+    const host = new URL(origin).hostname;
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '[::1]';
+  } catch {
+    return false;
+  }
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -28,8 +37,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     throw new Error(`SITE_URL must be an http(s) origin such as https://example.com, got "${env.SITE_URL}"`);
   }
   const demoStaffPassword = env.DEMO_STAFF_PASSWORD || null;
-  if (demoStaffPassword !== null && (demoStaffPassword.length < MIN_PASSWORD_LENGTH || demoStaffPassword.length > MAX_PASSWORD_LENGTH)) {
-    throw new Error(`DEMO_STAFF_PASSWORD must be ${MIN_PASSWORD_LENGTH} to ${MAX_PASSWORD_LENGTH} characters`);
+  if (demoStaffPassword !== null) {
+    if (demoStaffPassword.length < MIN_PASSWORD_LENGTH || demoStaffPassword.length > MAX_PASSWORD_LENGTH) {
+      throw new Error(`DEMO_STAFF_PASSWORD must be ${MIN_PASSWORD_LENGTH} to ${MAX_PASSWORD_LENGTH} characters`);
+    }
+    if (!isLoopbackOrigin(siteUrl) && demoStaffPassword.toLowerCase() === 'demo-staff-password') {
+      throw new Error(`DEMO_STAFF_PASSWORD cannot use the known default password on a public site URL ("${siteUrl}")`);
+    }
   }
   return { port, dbPath: env.DB_PATH || 'data/kochi-tours.db', siteUrl, trustProxy: env.TRUST_PROXY === '1', demoStaffPassword };
 }

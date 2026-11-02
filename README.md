@@ -19,6 +19,18 @@ npm test
 ## Routes
 `/` home and package list · `/packages/:slug` package detail · `GET /enquire?package=<slug>` the enquiry form for a live package, `POST /enquire` to send it · `/enquiry/received/:token` acknowledgement and status (reached only by the unguessable link; noindex) · `/staff/login` staff sign-in · `/staff/inbox` triage queue · `/staff/enquiries/:id` enquiry workspace · `/staff/activity` admin audit log · `/sitemap.xml` · `/robots.txt` · `/healthz` · `/assets/*` photos and font. A trailing slash redirects (301) to the clean URL; unknown paths and unpublished packages return a 404 page.
 
+## Staff accounts
+The three demo staff accounts (one admin, two consultants) use synthetic identities on the reserved `.invalid` domain:
+- `admin@staff.example.invalid` (Role: Admin)
+- `consultant1@staff.example.invalid` (Role: Consultant)
+- `consultant2@staff.example.invalid` (Role: Consultant)
+
+By default, `npm run db:reset` seeds these accounts with login disabled (`active = 0`, `password_hash = 'LOGIN-DISABLED'`) so that fresh or public instances never expose enquiry data through a known default credential. To enable staff login in development or review, set `DEMO_STAFF_PASSWORD` (12–256 characters) in `.env` or your environment before running `npm run db:reset`:
+```bash
+DEMO_STAFF_PASSWORD="your-strong-password" npm run db:reset
+```
+On public site URLs (non-localhost), the known demo password (`demo-staff-password`) is explicitly forbidden; a non-default password is required.
+
 ## Environment variables (names only; set them in your own shell or a git-ignored `.env`)
 | Name | Used | Purpose |
 |---|---|---|
@@ -29,10 +41,10 @@ npm test
 | `ANTHROPIC_API_KEY` | S5 | Live AI extraction. Set privately; never commit or paste it |
 | `AI_PROVIDER` | S5 | `anthropic` (default when a key is set) or `rules` |
 | `AI_MODEL` | S5 | Overrides the default extraction model |
-| `SESSION_SECRET` | S4 | Signs staff sessions |
+| `DEMO_STAFF_PASSWORD` | now | Password for the three synthetic demo staff accounts. When unset during `npm run db:reset`, accounts are created inactive with login disabled, eliminating default credentials. Required before public use (must be non-default) |
 
 ## Scripts
 `dev`, `build`, `start`, `test`, `lint`, `typecheck`, `db:reset`.
 
 ## Data
-The two sample packages come from the client brief (`docs/CLIENT_BRIEF.md`): PKG-KL-07 (published, Peak ₹32,500, Monsoon ₹24,900) and PKG-SI-12 (draft, All year ₹18,750). Season day boundaries, `nights`, itineraries and the five `SYN-*` packages are assumed or synthetic and labelled so in the data. No GST, child or single-supplement rate is assumed: quotes that need them are reported as `partial`. The seed also adds the brief's sample enquiry (synthetic contact, labelled `seed_sample`). The database schema is version 2: after pulling S3, run `npm run db:reset` (it deletes local data).
+The two sample packages come from the client brief (`docs/CLIENT_BRIEF.md`): PKG-KL-07 (published, Peak ₹32,500, Monsoon ₹24,900) and PKG-SI-12 (draft, All year ₹18,750). Season day boundaries, `nights`, itineraries and the five `SYN-*` packages are assumed or synthetic and labelled so in the data. No GST, child or single-supplement rate is assumed: quotes that need them are reported as `partial`. The seed also adds the brief's sample enquiry (synthetic contact, labelled `seed_sample`). The database schema is version 3: after pulling S4, run `npm run db:reset` (it deletes local data).

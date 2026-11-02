@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { all, get, run, type DatabaseSync } from '../../src/db/db.js';
-import { resetDatabase } from '../../src/db/seed.js';
+import { DEMO_STAFF_PASSWORD, resetDatabase } from '../../src/db/seed.js';
 import { createEnquiry, getAcknowledgement, newSubmissionKey, type EnquiryInput } from '../../src/domain/enquiries.js';
 import { DomainError } from '../../src/domain/packages.js';
 import {
@@ -24,7 +24,7 @@ interface Fixture {
 
 /** The seed stamps its sample enquiry with the real clock, so tests that fix the time start without it unless they ask for it. */
 function fixture(keepSample = false): Fixture {
-  const db = resetDatabase(':memory:');
+  const db = resetDatabase(':memory:', { staffPassword: DEMO_STAFF_PASSWORD });
   if (!keepSample) db.exec('DELETE FROM enquiries');
   const user = (email: string): StaffUser => get<StaffUser>(db, 'SELECT id, email, name, role FROM staff_users WHERE email = ?', email)!;
   const versionId = get<{ id: number }>(db, "SELECT v.id FROM live_versions v JOIN packages p ON p.id = v.package_id WHERE p.code = 'PKG-KL-07'")!.id;
@@ -350,12 +350,17 @@ describe('replies: channels, drafts and approval', () => {
     assert.deepEqual(replyChannels({ email: null, phone: '+911', whatsappConsent: true }).map((c) => c.channel), ['whatsapp', 'sms']);
   });
 
-  test('saving a draft keeps one working draft per enquiry, records no message, and audits no text', () => {
+  test('saving a draft keeps one working draft per enquiry, advances lock, records no message, and audits no text', () => {
     const f = fixture();
     const id = f.add();
-    saveReplyDraft(f.db, f.c1, input(id, { body: 'First draft' }), at(1));
-    saveReplyDraft(f.db, f.c2, input(id, { body: 'Second draft', subject: 'Re: houseboat' }), at(2));
-    const w = getWorkspace(f.db, id, at(3))!;
+    saveReplyDraft(f.db, f.c1, { ...input(id, { body: 'First draft' }), expectedLock: 1 }, at(1));
+    assert.equal(getWorkspace(f.db, id, at(1))!.lockVersion, 2);
+    // A stale submit with lock 1 fails with conflict
+    assert.equal(code(() => saveReplyDraft(f.db, f.c2, { ...input(id, { body: 'Stale draft' }), expectedLock: 1 }, at(2))), 'conflict');
+    // Submitting with updated lock 2 succeeds and bumps lock to 3
+    saveReplyDraft(f.db, f.c2, { ...input(id, { body: 'Second draft', subject: 'Re: houseboat' }), expectedLock: 2 }, at(3));
+    const w = getWorkspace(f.db, id, at(4))!;
+    assert.equal(w.lockVersion, 3);
     assert.deepEqual([w.draft?.body, w.draft?.subject, w.draft?.updatedByName], ['Second draft', 'Re: houseboat', 'Demo Consultant Two']);
     assert.equal(count(f.db, "SELECT COUNT(*) AS n FROM outbox_messages WHERE kind = 'staff_reply'"), 0);
     assert.equal(w.status, 'new', 'a draft does not change the status');
@@ -367,8 +372,8 @@ describe('replies: channels, drafts and approval', () => {
   test('the recipient comes from the enquiry, and only offered channels are accepted', () => {
     const f = fixture();
     const id = f.add({ email: 'guest@example.invalid', phone: '+919847012345', whatsappConsent: false });
-    assert.equal(code(() => saveReplyDraft(f.db, f.c1, input(id, { channel: 'whatsapp' }), T0)), 'validation', 'no consent, no WhatsApp');
-    assert.equal(code(() => saveReplyDraft(f.db, f.c1, input(id, { channel: 'carrier-pigeon' }), T0)), 'validation');
+    assert.equal(code(() => saveReplyDraft(f.db, f.c1, { ...input(id, { channel: 'whatsapp' }), expectedLock: 1 }, T0)), 'validation', 'no consent, no WhatsApp');
+    assert.equal(code(() => saveReplyDraft(f.db, f.c1, { ...input(id, { channel: 'carrier-pigeon' }), expectedLock: 1 }, T0)), 'validation');
     recordReply(f.db, f.c1, { ...input(id, { channel: 'sms' }), approved: true, expectedLock: 1 }, T0);
     assert.equal(get<{ recipient: string }>(f.db, "SELECT recipient FROM outbox_messages WHERE kind = 'staff_reply'")?.recipient, '+919847012345');
   });
@@ -386,8 +391,10 @@ describe('replies: channels, drafts and approval', () => {
   test('an approved reply is a mock outbox row naming its approver, clears the draft, moves to Replied and stops the clock', () => {
     const f = fixture();
     const id = f.add({}, T0);
-    saveReplyDraft(f.db, f.c1, input(id, { body: 'Draft text' }), at(5));
-    const { messageId } = recordReply(f.db, f.c1, { ...input(id, { subject: 'Your houseboat enquiry', body: 'Final text' }), approved: true, expectedLock: 1 }, at(42));
+    saveReplyDraft(f.db, f.c1, { ...input(id, { body: 'Draft text' }), expectedLock: 1 }, at(5));
+    // Since saveReplyDraft advanced the lock to 2, recordReply with stale expectedLock 1 conflicts:
+    assert.equal(code(() => recordReply(f.db, f.c1, { ...input(id, { subject: 'Your houseboat enquiry', body: 'Final text' }), approved: true, expectedLock: 1 }, at(42))), 'conflict');
+    const { messageId } = recordReply(f.db, f.c1, { ...input(id, { subject: 'Your houseboat enquiry', body: 'Final text' }), approved: true, expectedLock: 2 }, at(42));
     const row = get<Record<string, unknown>>(f.db, 'SELECT * FROM outbox_messages WHERE id = ?', messageId)!;
     assert.deepEqual(
       [row.kind, row.channel, row.recipient, row.subject, row.body, row.delivery, row.approved_by, row.template_version, row.created_at],
@@ -414,17 +421,17 @@ describe('replies: channels, drafts and approval', () => {
     const f = fixture();
     const id = f.add();
     changeStatus(f.db, f.admin, { enquiryId: id, status: 'closed', expectedLock: 1 }, T0);
-    assert.equal(code(() => saveReplyDraft(f.db, f.c1, input(id), T0)), 'invalid_state');
+    assert.equal(code(() => saveReplyDraft(f.db, f.c1, { ...input(id), expectedLock: 2 }, T0)), 'invalid_state');
     assert.equal(code(() => recordReply(f.db, f.c1, { ...input(id), approved: true, expectedLock: 2 }, T0)), 'invalid_state');
   });
 
   test('empty, over-long and unknown-enquiry replies are refused; an email without a subject gets a plain default', () => {
     const f = fixture();
     const id = f.add();
-    assert.equal(code(() => saveReplyDraft(f.db, f.c1, input(id, { body: '  ' }), T0)), 'validation');
-    assert.equal(code(() => saveReplyDraft(f.db, f.c1, input(id, { body: 'x'.repeat(TRIAGE_LIMITS.reply + 1) }), T0)), 'validation');
-    assert.equal(code(() => saveReplyDraft(f.db, f.c1, input(id, { subject: 'x'.repeat(TRIAGE_LIMITS.subject + 1) }), T0)), 'validation');
-    assert.equal(code(() => saveReplyDraft(f.db, f.c1, input(9999), T0)), 'not_found');
+    assert.equal(code(() => saveReplyDraft(f.db, f.c1, { ...input(id, { body: '  ' }), expectedLock: 1 }, T0)), 'validation');
+    assert.equal(code(() => saveReplyDraft(f.db, f.c1, { ...input(id, { body: 'x'.repeat(TRIAGE_LIMITS.reply + 1) }), expectedLock: 1 }, T0)), 'validation');
+    assert.equal(code(() => saveReplyDraft(f.db, f.c1, { ...input(id, { subject: 'x'.repeat(TRIAGE_LIMITS.subject + 1) }), expectedLock: 1 }, T0)), 'validation');
+    assert.equal(code(() => saveReplyDraft(f.db, f.c1, { ...input(9999), expectedLock: 1 }, T0)), 'not_found');
     recordReply(f.db, f.c1, { ...input(id), approved: true, expectedLock: 1 }, T0);
     const ref = get<{ reference: string }>(f.db, 'SELECT reference FROM enquiries WHERE id = ?', id)!.reference;
     assert.equal(get<{ subject: string }>(f.db, "SELECT subject FROM outbox_messages WHERE kind = 'staff_reply'")?.subject, `Your enquiry (${ref})`);

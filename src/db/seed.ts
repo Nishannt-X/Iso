@@ -171,9 +171,9 @@ const SEED_PACKAGES: SeedPackage[] = [
 const SEED_USER_EMAIL = 'seed@system.invalid';
 
 /**
- * Synthetic staff for reviewers, on the reserved .invalid domain (no mailbox can exist). They share one password,
- * documented in README.md as a development credential: set DEMO_STAFF_PASSWORD before `npm run db:reset` to use
- * your own, and never run a public deployment on the default.
+ * Synthetic staff for reviewers, on the reserved .invalid domain (no mailbox can exist).
+ * When seeded without an explicit staffPassword, accounts are created inactive with login disabled,
+ * eliminating any publicly usable known default credentials.
  */
 export const DEMO_STAFF_PASSWORD = 'demo-staff-password';
 export const DEMO_STAFF = [
@@ -183,8 +183,13 @@ export const DEMO_STAFF = [
 ] as const;
 
 export interface SeedOptions {
-  /** Password for the demo staff accounts; defaults to DEMO_STAFF_PASSWORD. */
+  /**
+   * Password for the demo staff accounts. When omitted or null, accounts are seeded inactive (active=0, LOGIN-DISABLED)
+   * so no publicly usable known default credential exists. Set DEMO_STAFF_PASSWORD before db:reset to enable staff login.
+   */
   staffPassword?: string | null;
+  /** When true, forbids the known demo password (DEMO_STAFF_PASSWORD). */
+  requireNonDefault?: boolean;
 }
 
 // ponytail: one hash per distinct password per process, shared by the three demo accounts (equal salt, demo data only),
@@ -201,8 +206,15 @@ export function seedDatabase(db: DatabaseSync, options: SeedOptions = {}): { pac
   const actorId = Number(
     run(db, "INSERT INTO staff_users (email, name, role, password_hash, active) VALUES (?, 'Seed (system)', 'admin', 'LOGIN-DISABLED', 0)", SEED_USER_EMAIL).lastInsertRowid,
   );
-  const hash = demoHash(options.staffPassword ?? DEMO_STAFF_PASSWORD);
-  for (const u of DEMO_STAFF) run(db, 'INSERT INTO staff_users (email, name, role, password_hash) VALUES (?, ?, ?, ?)', u.email, u.name, u.role, hash);
+  if (options.staffPassword) {
+    if (options.requireNonDefault && options.staffPassword.toLowerCase() === DEMO_STAFF_PASSWORD) {
+      throw new Error(`A non-default staff password is required before public use; cannot use "${DEMO_STAFF_PASSWORD}".`);
+    }
+    const hash = demoHash(options.staffPassword);
+    for (const u of DEMO_STAFF) run(db, 'INSERT INTO staff_users (email, name, role, password_hash, active) VALUES (?, ?, ?, ?, 1)', u.email, u.name, u.role, hash);
+  } else {
+    for (const u of DEMO_STAFF) run(db, "INSERT INTO staff_users (email, name, role, password_hash, active) VALUES (?, ?, ?, 'LOGIN-DISABLED', 0)", u.email, u.name, u.role);
+  }
   let published = 0;
   for (const p of SEED_PACKAGES) {
     // Order: package, draft version with its children, then publish. There is no FK cycle to work around.

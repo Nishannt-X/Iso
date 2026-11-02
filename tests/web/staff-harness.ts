@@ -33,7 +33,7 @@ export interface Harness {
 }
 
 export function harness(options: { siteUrl?: string; keepSample?: boolean; loginLimits?: { perClient?: number; perEmail?: number } } = {}): Harness {
-  const db = resetDatabase(':memory:');
+  const db = resetDatabase(':memory:', { staffPassword: PASSWORD });
   if (!options.keepSample) db.exec('DELETE FROM enquiries');
   run(db, 'UPDATE staff_users SET password_hash = ? WHERE active = 1', CHEAP_HASH);
   const clock: Clock = { now: new Date(T0), advance(m) { this.now = new Date(this.now.getTime() + m * 60_000); } };

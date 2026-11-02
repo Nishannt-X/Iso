@@ -20,4 +20,23 @@ describe('loadConfig', () => {
     }
     assert.throws(() => loadConfig({ PORT: '0' }), /PORT must be/);
   });
+  test('DEMO_STAFF_PASSWORD validation and public site restriction', () => {
+    // Valid on loopback
+    assert.equal(loadConfig({ DEMO_STAFF_PASSWORD: 'a-valid-test-password' }).demoStaffPassword, 'a-valid-test-password');
+    assert.equal(loadConfig({ DEMO_STAFF_PASSWORD: 'demo-staff-password' }).demoStaffPassword, 'demo-staff-password');
+    // Length checks: min 12, max 256
+    assert.throws(() => loadConfig({ DEMO_STAFF_PASSWORD: 'short' }), /DEMO_STAFF_PASSWORD must be/);
+    assert.equal(loadConfig({ DEMO_STAFF_PASSWORD: 'x'.repeat(256) }).demoStaffPassword, 'x'.repeat(256));
+    assert.throws(() => loadConfig({ DEMO_STAFF_PASSWORD: 'x'.repeat(257) }), /DEMO_STAFF_PASSWORD must be/);
+    // On a public URL, the known demo password is rejected
+    assert.throws(
+      () => loadConfig({ SITE_URL: 'https://tours.example.com', DEMO_STAFF_PASSWORD: 'demo-staff-password' }),
+      /DEMO_STAFF_PASSWORD cannot use the known default password on a public site URL/,
+    );
+    // A custom strong password on a public URL is accepted
+    assert.equal(
+      loadConfig({ SITE_URL: 'https://tours.example.com', DEMO_STAFF_PASSWORD: 'strong-production-password' }).demoStaffPassword,
+      'strong-production-password',
+    );
+  });
 });
