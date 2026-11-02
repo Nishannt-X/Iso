@@ -7,8 +7,8 @@ CREATE TABLE staff_users (
   id            INTEGER PRIMARY KEY,
   email         TEXT NOT NULL UNIQUE,
   name          TEXT NOT NULL,
-  -- agent: triage enquiries. admin: also create, edit and publish packages.
-  role          TEXT NOT NULL CHECK (role IN ('admin', 'agent')),
+  -- agent: enquiries. editor: content drafts. admin: approvals and all staff tools.
+  role          TEXT NOT NULL CHECK (role IN ('admin', 'agent', 'editor')),
   password_hash TEXT NOT NULL,
   -- 0 = cannot sign in and cannot be assigned work (the seed's system owner, or a staff member who left).
   active        INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
@@ -387,4 +387,33 @@ CREATE TABLE package_publication_schedule (
 );
 CREATE INDEX ix_publication_due ON package_publication_schedule(status, publish_at);
 
-PRAGMA user_version = 5;
+CREATE TABLE blog_posts (
+  id INTEGER PRIMARY KEY,
+  slug TEXT NOT NULL UNIQUE,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  CHECK (slug GLOB '[a-z0-9]*' AND slug NOT GLOB '*[^a-z0-9-]*')
+);
+CREATE TABLE blog_versions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  post_id INTEGER NOT NULL REFERENCES blog_posts(id) ON DELETE CASCADE,
+  version_no INTEGER NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('draft', 'published', 'superseded')),
+  lock_version INTEGER NOT NULL DEFAULT 1,
+  title TEXT NOT NULL,
+  excerpt TEXT NOT NULL,
+  body_markdown TEXT NOT NULL,
+  category TEXT NOT NULL,
+  cover_photo_id TEXT,
+  seo_title TEXT NOT NULL,
+  seo_description TEXT NOT NULL,
+  related_codes_json TEXT NOT NULL,
+  created_by INTEGER NOT NULL REFERENCES staff_users(id),
+  updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  published_at TEXT,
+  UNIQUE (post_id, version_no)
+);
+CREATE UNIQUE INDEX ux_blog_draft ON blog_versions(post_id) WHERE status='draft';
+CREATE UNIQUE INDEX ux_blog_live ON blog_versions(post_id) WHERE status='published';
+CREATE INDEX ix_blog_live_category ON blog_versions(status, category, published_at);
+
+PRAGMA user_version = 6;

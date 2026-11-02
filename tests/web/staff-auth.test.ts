@@ -321,6 +321,6 @@ describe('roles', () => {
     h.db.prepare('UPDATE staff_users SET active = 0 WHERE email = ?').run(C1);
     assert.equal((await h.get('/staff/inbox', cookie)).status, 303);
     assert.equal((await h.post('/staff/login', { email: C1, password: PASSWORD })).status, 422);
-    assert.equal(get<{ n: number }>(h.db, 'SELECT COUNT(*) AS n FROM staff_users WHERE active = 1')?.n, 2);
+    assert.equal(get<{ n: number }>(h.db, 'SELECT COUNT(*) AS n FROM staff_users WHERE active = 1')?.n, 3);
   });
 });

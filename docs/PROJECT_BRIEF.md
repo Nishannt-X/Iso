@@ -5,12 +5,12 @@
 
 - **Name:** Company A Kochi tour operator (Problem 2)
 - **One-line purpose:** Let travellers browse tour packages and send an enquiry, and let staff manage package content (versioned) and triage enquiries with AI-assisted, human-approved replies.
-- **Users / who benefits:** The brief's CORE BUILD names two roles: traveller and staff admin. The build reads "traveller" as the public visitor (no login) and models staff as `admin` (create, edit, publish packages) plus `agent` (triage enquiries). The `agent` split is this build's assumption, drawn from the brief's consultant role.
+- **Users / who benefits:** The brief's CORE BUILD names two roles: traveller and staff admin. The build reads "traveller" as the public visitor (no login) and models staff as `admin` (publish content and manage work), `agent` (triage enquiries) and `editor` (prepare journal drafts). The staff split is this build's assumption, drawn from the brief's consultant and content staff roles.
 - **Owner / approver of merges:** Human project owner.
 
 ## Goal & success criteria (verifiable)
 1. The selected problem statement's CORE BUILD and main flows work end to end on realistic synthetic sample data.
-2. The product has a frontend, backend, database, sign-in, and roles (staff only: `admin`, `agent`).
+2. The product has a frontend, backend, database, sign-in, and roles (staff only: `admin`, `agent`, `editor`).
 3. AI or automation works in practice, including wrong or uncertain outcomes; the UI supports phone layouts and loading, empty, and error states.
 4. Important logic has tests, inputs are validated, access is controlled, and no secrets or real personal data are committed.
 5. Submission rule relayed by the owner (**not in the client brief**): one ZIP of at most 25 MB containing exactly a TDD (PDF or Word) and `deployment.md`; the TDD begins with the public GitHub URL and includes a live app URL if deployed.
@@ -27,7 +27,7 @@ The owner expanded scope to the full selected brief after S4. Work remains on `f
 | S4 | Screens 5–6 (staff login, inbox), sessions, CSRF, role checks | this branch |
 | S5 | AI extraction (live Google Gemini API, labelled rules fallback), ranking, drafting, price guard, screen 7 | this branch; live path awaits a private key for verification |
 | S6 | Screen 8 (package editor, optimistic lock, publish, restore, history, preview) | this branch |
-| S7 | Full MUST HAVE depth: destination/search/map, blog CMS, package scheduling/duplication, quote PDF/link, additional enquiry channels and editor role | search, duplication and scheduling on this branch; remainder planned |
+| S7 | Full MUST HAVE depth: destination/search/map, blog CMS, package scheduling/duplication, quote PDF/link, additional enquiry channels and editor role | search, duplication, scheduling, journal CMS and editor role on this branch; remainder planned |
 | S8 | States, phone and accessibility pass, performance, screenshots | planned |
 | S9 | TDD, `deployment.md`, DECISIONS, rubric, ZIP | planned |
 

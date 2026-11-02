@@ -18,9 +18,9 @@ export interface Viewer {
   csrfToken: string;
 }
 
-export type StaffSection = 'inbox' | 'packages' | 'activity' | null;
+export type StaffSection = 'inbox' | 'packages' | 'blogs' | 'activity' | null;
 
-export const ROLE_LABEL: Record<Role, string> = { admin: 'Admin', agent: 'Consultant' };
+export const ROLE_LABEL: Record<Role, string> = { admin: 'Admin', agent: 'Consultant', editor: 'Content editor' };
 
 export function CsrfField({ token }: { token: string }) {
   return <input type="hidden" name="_csrf" value={token} />;
@@ -38,8 +38,9 @@ export function StaffShell(props: { ctx: PageContext; viewer: Viewer | null; tit
   };
   const nav = viewer ? (
     <nav class="staff-nav" aria-label="Staff">
-      <a href="/staff/inbox" aria-current={props.section === 'inbox' ? 'page' : undefined}>Inbox</a>
+      {viewer.role !== 'editor' ? <a href="/staff/inbox" aria-current={props.section === 'inbox' ? 'page' : undefined}>Inbox</a> : null}
       {viewer.role === 'admin' ? <a href="/staff/packages" aria-current={props.section === 'packages' ? 'page' : undefined}>Packages</a> : null}
+      {viewer.role !== 'agent' ? <a href="/staff/blogs" aria-current={props.section === 'blogs' ? 'page' : undefined}>Journal</a> : null}
       {viewer.role === 'admin' ? <a href="/staff/activity" aria-current={props.section === 'activity' ? 'page' : undefined}>Activity</a> : null}
       <span class="who">{viewer.name} · {ROLE_LABEL[viewer.role]}</span>
       <form method="post" action="/staff/logout">
@@ -53,7 +54,7 @@ export function StaffShell(props: { ctx: PageContext; viewer: Viewer | null; tit
     </nav>
   );
   return (
-    <Layout meta={meta} nav={nav} footer={null} extraCss={STAFF_CSS} brandHref={viewer ? '/staff/inbox' : '/'}>
+    <Layout meta={meta} nav={nav} footer={null} extraCss={STAFF_CSS} brandHref={viewer?.role === 'editor' ? '/staff/blogs' : viewer ? '/staff/inbox' : '/'}>
       {props.children}
     </Layout>
   );

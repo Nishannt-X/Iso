@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, rmSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { createEnquiry } from '../domain/enquiries.js';
+import { createBlog, publishBlog } from '../domain/blog.js';
 import { hashPasswordSync } from '../domain/passwords.js';
 import { createPackage, publish, SYNTHETIC_MARKER, type DataOrigin, type VersionContent } from '../domain/packages.js';
 import { get, initSchema, isInitialised, openDb, run, type DatabaseSync } from './db.js';
@@ -180,6 +181,7 @@ export const DEMO_STAFF = [
   { email: 'admin@staff.example.invalid', name: 'Demo Admin', role: 'admin' },
   { email: 'consultant1@staff.example.invalid', name: 'Demo Consultant One', role: 'agent' },
   { email: 'consultant2@staff.example.invalid', name: 'Demo Consultant Two', role: 'agent' },
+  { email: 'editor@staff.example.invalid', name: 'Demo Content Editor', role: 'editor' },
 ] as const;
 
 export interface SeedOptions {
@@ -192,7 +194,7 @@ export interface SeedOptions {
   requireNonDefault?: boolean;
 }
 
-// ponytail: one hash per distinct password per process, shared by the three demo accounts (equal salt, demo data only),
+// ponytail: one hash per distinct password per process, shared by the four demo accounts (equal salt, demo data only),
 // because scrypt is deliberately slow and the tests rebuild the database often. Real accounts each get their own salt.
 const demoHashes = new Map<string, string>();
 const demoHash = (password: string): string => {
@@ -225,6 +227,13 @@ export function seedDatabase(db: DatabaseSync, options: SeedOptions = {}): { pac
     }
   }
   seedSampleEnquiry(db);
+  const blogId = createBlog(db, 'how-to-choose-a-kerala-trip', actorId, {
+    title: 'How to choose a Kerala trip', excerpt: 'A simple way to choose between hills, backwaters and a houseboat night.',
+    body: '## Start with the moments you want\n\nA short trip can be about one place. A longer one can combine several stops. Decide whether a houseboat night is essential before comparing packages.\n\n## Read each day\n\nCheck the day-by-day plan, the hotel category and what is included. Then compare the seasonal per-person fare and ask a consultant to confirm the final amount, child policy and GST.\n\nThis is synthetic demo editorial content, not an official Company A article.',
+    category: 'Planning', coverPhotoId: 'alleppey-houseboat', seoTitle: 'How to choose a Kerala trip | Kochi Tours',
+    seoDescription: 'Compare Kerala holiday packages by itinerary, houseboat stay, seasonal fare and inclusions.', relatedCodes: ['PKG-KL-07'],
+  });
+  publishBlog(db, blogId, 1, actorId);
   return { packages: SEED_PACKAGES.length, published };
 }
 

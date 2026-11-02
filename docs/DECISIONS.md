@@ -135,3 +135,10 @@
 - **Consequences:** A running server is needed for on-time publication; after a restart, due schedules run at startup. The scheduler is safe for a single SQLite-backed instance. A focused test covers due versus early publication.
 - **Decided by:** Builder · **Related:** `src/domain/publication-schedule.ts`
 
+## 2026-11-02 · Versioned journal and a constrained content editor
+- **Status:** accepted
+- **Context:** The full brief asks for an on-site blog CMS with images, categories, SEO fields and related packages, plus staff roles. The owner expanded scope to all MUST HAVE flows.
+- **Decision:** Store each article as a private draft or a published version in SQLite. Editors can create, revise and preview article drafts; only admins can publish. Render Markdown through a sanitizer with a small HTML allowlist and local library images. The public journal and article pages are server-rendered and added to the sitemap. Seed one clearly labelled synthetic article. Migrate existing version-5 databases by widening the staff role constraint and adding the article tables, then check foreign keys.
+- **Consequences:** This editor supports Markdown formatting rather than WYSIWYG. The article image library is limited to bundled photographs. Article edits keep the published version live until admin approval. Client editorial and SEO copy still need review before a real launch.
+- **Decided by:** agent (Builder) · **Related:** `feat/kochi-tours-core`
+

@@ -7,10 +7,12 @@ import { trimTrailingSlash } from 'hono/trailing-slash';
 import { get, type DatabaseSync } from './db/db.js';
 import { getLiveVersionBySlug, listDataOrigins, listLiveVersions } from './domain/packages.js';
 import { cleanText } from './domain/enquiries.js';
+import { getLiveBlogBySlug, listLiveBlogs } from './domain/blog.js';
 import { PHOTO_FILE_PATTERN } from './domain/photos.js';
 import { DEFAULT_LIMITS, registerEnquiryRoutes, type EnquiryLimits } from './web/enquiry-routes.js';
 import { DEFAULT_LOGIN_LIMITS, registerStaffRoutes, type LoginLimits } from './web/staff-routes.js';
 import { HomePage, MessagePage, PackagePage, PackageSearchPage, packagePath, type PageContext } from './web/pages.js';
+import { BlogArticlePage, BlogIndexPage } from './web/blog-pages.js';
 
 // Public site (slice S2): server-rendered home/list and package detail, plus sitemap, robots and 404.
 // Slice S3 adds the enquiry flow (src/web/enquiry-routes.tsx): the form behind every Enquire button and the status page.
@@ -89,6 +91,15 @@ export function createApp(db: DatabaseSync, options: AppOptions = {}): Hono {
     return c.html(doc(<PackagePage v={version} origin={listDataOrigins(db).get(version.packageId)} ctx={ctx} />));
   });
 
+  app.get('/journal', (c) => c.html(doc(<BlogIndexPage posts={listLiveBlogs(db)} ctx={ctx} />)));
+  app.get('/journal/:slug', (c) => {
+    const slug = c.req.param('slug');
+    const post = SLUG.test(slug) ? getLiveBlogBySlug(db, slug) : null;
+    if (!post) return c.notFound();
+    const live = listLiveVersions(db);
+    return c.html(doc(<BlogArticlePage post={post} related={live.filter((p) => post.relatedCodes.includes(p.packageCode))} ctx={ctx} />));
+  });
+
   registerEnquiryRoutes(app, db, ctx, {
     now: options.now ?? (() => new Date()),
     trustProxy: options.trustProxy ?? false,
@@ -120,6 +131,8 @@ export function createApp(db: DatabaseSync, options: AppOptions = {}): Hono {
       { loc: `${ctx.siteUrl}/`, lastmod: null as string | null },
       { loc: `${ctx.siteUrl}/packages`, lastmod: null as string | null },
       ...listLiveVersions(db).map((v) => ({ loc: `${ctx.siteUrl}${packagePath(v.packageSlug)}`, lastmod: v.publishedAt })),
+      { loc: `${ctx.siteUrl}/journal`, lastmod: null as string | null },
+      ...listLiveBlogs(db).map((p) => ({ loc: `${ctx.siteUrl}/journal/${p.slug}`, lastmod: p.publishedAt })),
     ];
     const body = urls
       .map((u) => `  <url><loc>${xml(u.loc)}</loc>${u.lastmod ? `<lastmod>${xml(u.lastmod.slice(0, 10))}</lastmod>` : ''}</url>`)

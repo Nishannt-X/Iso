@@ -4,8 +4,9 @@ import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { createMiddleware } from 'hono/factory';
 import { get, type DatabaseSync } from '../db/db.js';
 import { acceptAnalysis, analyseEnquiry, getAnalysis, type ExtractedFields } from '../domain/analysis.js';
+import { createBlog, listStaffBlogs, publishBlog, saveBlogDraft, startBlogRevision, type BlogRow } from '../domain/blog.js';
 import { emptyPackageForm, formFromBody, formFromVersion, parsePackageForm } from '../domain/package-form.js';
-import { createPackage, DomainError, listPackageHistory, listPackagesForStaff, publish, restoreVersion, saveDraft, type PackageAdminRow } from '../domain/packages.js';
+import { createPackage, DomainError, listLiveVersions, listPackageHistory, listPackagesForStaff, publish, restoreVersion, saveDraft, type PackageAdminRow } from '../domain/packages.js';
 import { cancelPublication, getPublicationSchedule, schedulePublication } from '../domain/publication-schedule.js';
 import { RateLimiter } from '../domain/rate-limit.js';
 import {
@@ -13,6 +14,7 @@ import {
 } from '../domain/staff.js';
 import { ACTIVITY_LIMIT, addNote, assignEnquiry, changeStatus, getWorkspace, listActivity, listInbox, parseInboxQuery, recordReply, saveReplyDraft } from '../domain/triage.js';
 import { PackageEditorPage, PackageHistoryPage, PackageListPage } from './package-cms-pages.js';
+import { BlogArticlePage, BlogEditorPage, BlogStaffDetailPage, BlogStaffListPage, blogContentFromForm, blogFormFromVersion, emptyBlogForm, type BlogForm } from './blog-pages.js';
 import { PackagePage, type PageContext } from './pages.js';
 import { clientKey, isSameSite } from './request.js';
 import { ActivityPage, InboxPageView, LoginPage, StaffMessage, type Viewer } from './staff-pages.js';
@@ -130,7 +132,8 @@ export function registerStaffRoutes(app: Hono, db: DatabaseSync, ctx: PageContex
   // ---- sign in and out ----------------------------------------------------
 
   staff.get('/login', (c) => {
-    if (resolveSession(db, getCookie(c, cookieName), options.now())) return c.redirect('/staff/inbox', 303);
+    const active = resolveSession(db, getCookie(c, cookieName), options.now());
+    if (active) return c.redirect(active.user.role === 'editor' ? '/staff/blogs' : '/staff/inbox', 303);
     return page(c, <LoginPage ctx={ctx} next={safeNext(c.req.query('next'))} />);
   });
 
@@ -167,7 +170,7 @@ export function registerStaffRoutes(app: Hono, db: DatabaseSync, ctx: PageContex
     }
     const session = startSession(db, user, now);
     setCookie(c, cookieName, session.token, { httpOnly: true, secure: options.secureCookies, sameSite: 'Lax', path: '/', maxAge: session.maxAgeSec });
-    return c.redirect(next ?? '/staff/inbox', 303);
+    return c.redirect(next ?? (user.role === 'editor' ? '/staff/blogs' : '/staff/inbox'), 303);
   });
 
   staff.post('/logout', (c) => {
@@ -176,7 +179,14 @@ export function registerStaffRoutes(app: Hono, db: DatabaseSync, ctx: PageContex
     return c.redirect('/staff/login', 303);
   });
 
-  staff.get('/', (c) => c.redirect('/staff/inbox', 303));
+  staff.get('/', (c) => c.redirect(c.get('session').user.role === 'editor' ? '/staff/blogs' : '/staff/inbox', 303));
+
+  staff.use('*', createMiddleware<StaffEnv>(async (c, next) => {
+    if (c.get('session').user.role === 'editor' && !c.req.path.startsWith('/staff/blogs')) {
+      return message(c, 403, 'No access', 'Content editors work in the journal.', sessionViewer(c), { href: '/staff/blogs', text: 'Open journal' });
+    }
+    return next();
+  }));
 
   // ---- inbox --------------------------------------------------------------
 
@@ -294,6 +304,69 @@ export function registerStaffRoutes(app: Hono, db: DatabaseSync, ctx: PageContex
       if (!(err instanceof DomainError)) throw err;
       return workspaceResponse(c, id, DOMAIN_STATUS[err.code], { problem: { area: 'analysis', message: err.message } });
     }
+  });
+
+  // ---- journal CMS (admins approve, editors prepare drafts) ---------------
+
+  const blogRow = (raw: string | undefined): BlogRow | undefined => raw && ID.test(raw) ? listStaffBlogs(db).find((p) => p.id === Number(raw)) : undefined;
+  const blogMissing = (c: Context<StaffEnv>) => message(c, 404, 'Article not found', 'That article does not exist.', sessionViewer(c), { href: '/staff/blogs', text: 'All articles' });
+  const blogForm = (body: Record<string, unknown>): BlogForm => {
+    const form = emptyBlogForm();
+    for (const key of Object.keys(form) as (keyof BlogForm)[]) form[key] = text(body, key);
+    return form;
+  };
+  const blogDetail = (c: Context<StaffEnv>, row: BlogRow, error?: string, done?: string, status: 200 | ErrorStatus = 200) =>
+    page(c, <BlogStaffDetailPage ctx={ctx} viewer={sessionViewer(c)} row={row} error={error} done={done} />, status);
+  const contentOnly = createMiddleware<StaffEnv>(async (c, next) => c.get('session').user.role === 'agent'
+    ? message(c, 403, 'No access', 'Consultants work in the enquiry inbox.', sessionViewer(c), { href: '/staff/inbox', text: 'Open inbox' }) : next());
+
+  staff.get('/blogs', contentOnly, (c) => page(c, <BlogStaffListPage ctx={ctx} viewer={sessionViewer(c)} rows={listStaffBlogs(db)} />));
+  staff.get('/blogs/new', contentOnly, (c) => page(c, <BlogEditorPage ctx={ctx} viewer={sessionViewer(c)} form={emptyBlogForm()} />));
+  staff.post('/blogs/new', contentOnly, async (c) => {
+    const form = blogForm(await c.req.parseBody());
+    try { const id = createBlog(db, form.slug.trim(), c.get('session').user.id, blogContentFromForm(form)); return c.redirect(`/staff/blogs/${id}?done=created`, 303); }
+    catch (err) { if (!(err instanceof DomainError)) throw err; return page(c, <BlogEditorPage ctx={ctx} viewer={sessionViewer(c)} form={form} error={err.message} />, DOMAIN_STATUS[err.code]); }
+  });
+  staff.get('/blogs/:id', contentOnly, (c) => {
+    const row = blogRow(c.req.param('id'));
+    if (!row) return blogMissing(c);
+    const done = c.req.query('done');
+    const labels: Record<string, string> = { created: 'Article draft created.', saved: 'Draft saved.', published: 'Article published.', revised: 'Private revision started.' };
+    return blogDetail(c, row, undefined, done ? labels[done] : undefined);
+  });
+  staff.get('/blogs/:id/edit', contentOnly, (c) => {
+    const row = blogRow(c.req.param('id'));
+    if (!row) return blogMissing(c);
+    if (!row.draft) return blogDetail(c, row, 'Start a revision first.', undefined, 409);
+    return page(c, <BlogEditorPage ctx={ctx} viewer={sessionViewer(c)} form={blogFormFromVersion(row.draft)} postId={row.id} lock={row.draft.lockVersion} />);
+  });
+  staff.post('/blogs/:id/edit', contentOnly, async (c) => {
+    const row = blogRow(c.req.param('id'));
+    if (!row) return blogMissing(c);
+    const body = await c.req.parseBody();
+    const form = blogForm(body);
+    form.slug = row.slug;
+    try { saveBlogDraft(db, row.id, parseLock(body), c.get('session').user.id, blogContentFromForm(form)); return c.redirect(`/staff/blogs/${row.id}?done=saved`, 303); }
+    catch (err) { if (!(err instanceof DomainError)) throw err; return page(c, <BlogEditorPage ctx={ctx} viewer={sessionViewer(c)} form={form} postId={row.id} lock={ID.test(text(body, 'lock')) ? Number(text(body, 'lock')) : -1} error={err.message} />, DOMAIN_STATUS[err.code]); }
+  });
+  staff.get('/blogs/:id/preview', contentOnly, (c) => {
+    const row = blogRow(c.req.param('id'));
+    if (!row) return blogMissing(c);
+    if (!row.draft) return blogDetail(c, row, 'There is no private draft to preview.', undefined, 409);
+    const live = listLiveVersions(db);
+    return page(c, <BlogArticlePage ctx={ctx} post={row.draft} related={live.filter((p) => row.draft!.relatedCodes.includes(p.packageCode))} previewId={row.id} />);
+  });
+  staff.post('/blogs/:id/revise', contentOnly, (c) => {
+    const row = blogRow(c.req.param('id'));
+    if (!row) return blogMissing(c);
+    try { startBlogRevision(db, row.id, c.get('session').user.id); return c.redirect(`/staff/blogs/${row.id}/edit`, 303); }
+    catch (err) { if (!(err instanceof DomainError)) throw err; return blogDetail(c, row, err.message, undefined, DOMAIN_STATUS[err.code]); }
+  });
+  staff.post('/blogs/:id/publish', adminOnly, async (c) => {
+    const row = blogRow(c.req.param('id'));
+    if (!row) return blogMissing(c);
+    try { publishBlog(db, row.id, parseLock(await c.req.parseBody()), c.get('session').user.id); return c.redirect(`/staff/blogs/${row.id}?done=published`, 303); }
+    catch (err) { if (!(err instanceof DomainError)) throw err; return blogDetail(c, row, err.message, undefined, DOMAIN_STATUS[err.code]); }
   });
 
   // ---- package CMS (admin only) ------------------------------------------

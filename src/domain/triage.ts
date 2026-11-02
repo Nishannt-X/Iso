@@ -343,7 +343,7 @@ export function assignEnquiry(
   return transaction(db, () => {
     const row = loadWorkflow(db, args.enquiryId);
     checkLock(row, args.expectedLock);
-    if (args.assigneeId !== null && !get(db, 'SELECT 1 FROM staff_users WHERE id = ? AND active = 1', args.assigneeId)) {
+    if (args.assigneeId !== null && !get(db, "SELECT 1 FROM staff_users WHERE id = ? AND active = 1 AND role IN ('admin', 'agent')", args.assigneeId)) {
       throw new DomainError('validation', 'Choose someone from the list.');
     }
     if (args.assigneeId === row.assignee_id) return { changed: false };

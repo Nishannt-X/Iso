@@ -6,7 +6,7 @@ import { verifyAgainstDummy, verifyPassword } from './passwords.js';
 // Staff accounts and sessions (slice S4). Roles: `admin` (everything an agent can do, plus assigning work to
 // anyone and reading the activity log) and `agent` (a consultant who triages enquiries).
 
-export type Role = 'admin' | 'agent';
+export type Role = 'admin' | 'agent' | 'editor';
 
 export interface StaffUser {
   id: number;
@@ -117,5 +117,5 @@ export function csrfMatches(session: StaffSession, sent: unknown): boolean {
 
 /** Staff who can be given work: active accounts, in a stable order. */
 export function listAssignable(db: DatabaseSync): StaffUser[] {
-  return all<StaffUser>(db, "SELECT id, email, name, role FROM staff_users WHERE active = 1 ORDER BY CASE role WHEN 'agent' THEN 0 ELSE 1 END, name, id");
+  return all<StaffUser>(db, "SELECT id, email, name, role FROM staff_users WHERE active = 1 AND role IN ('admin', 'agent') ORDER BY CASE role WHEN 'agent' THEN 0 ELSE 1 END, name, id");
 }
