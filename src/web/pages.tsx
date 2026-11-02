@@ -17,6 +17,44 @@ export const destinationSlug = (name: string): string => name.toLocaleLowerCase(
 export const destinationPath = (name: string): string => `/destinations/${destinationSlug(name)}`;
 const mapPath = (name: string): string => `https://www.openstreetmap.org/search?query=${encodeURIComponent(`${name}, India`)}`;
 
+const DEST_COORDS: Record<string, { x: number; y: number }> = {
+  kochi: { x: 140, y: 150 },
+  cochin: { x: 140, y: 150 },
+  munnar: { x: 300, y: 90 },
+  thekkady: { x: 440, y: 170 },
+  periyar: { x: 440, y: 170 },
+  alleppey: { x: 200, y: 240 },
+  alappuzha: { x: 200, y: 240 },
+  kumarakom: { x: 240, y: 210 },
+  kovalam: { x: 320, y: 290 },
+  madurai: { x: 500, y: 110 },
+  rameswaram: { x: 610, y: 180 },
+  kanyakumari: { x: 420, y: 300 },
+  wayanad: { x: 210, y: 60 },
+  goa: { x: 110, y: 70 },
+};
+
+function getDestCoord(dest: string, index: number, total: number): { x: number; y: number } {
+  const key = dest.trim().toLowerCase();
+  if (DEST_COORDS[key]) return DEST_COORDS[key];
+  const step = 450 / Math.max(total, 1);
+  return { x: 120 + index * step, y: 120 + (index % 2) * 70 };
+}
+
+function generateRouteSvgPath(destinations: string[]): string {
+  if (destinations.length < 2) return '';
+  const pts = destinations.map((d, i) => getDestCoord(d, i, destinations.length));
+  let d = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i = 1; i < pts.length; i++) {
+    const prev = pts[i - 1];
+    const curr = pts[i];
+    const cx = (prev.x + curr.x) / 2;
+    const cy = (prev.y + curr.y) / 2 - 25;
+    d += ` Q ${cx} ${cy} ${curr.x} ${curr.y}`;
+  }
+  return d;
+}
+
 export function DestinationIndexPage({ packages, ctx }: { packages: PackageVersion[]; ctx: PageContext }) {
   const names = [...new Set(packages.flatMap((p) => p.destinations))].sort((a, b) => a.localeCompare(b));
   return <Layout meta={{ title: 'Destinations | Kochi Tours', description: 'Find tours by place across Kerala and South India.', path: '/destinations', siteUrl: ctx.siteUrl }}><section class="section"><div class="wrap"><p class="eyebrow">Places</p><h1>Travel by destination</h1><p class="lede">Choose a place, then see the journeys that include it.</p>{names.length ? <ul class="destination-grid">{names.map((name) => <li><a href={destinationPath(name)}><strong>{name}</strong><span>{packages.filter((p) => p.destinations.includes(name)).length} journeys →</span></a></li>)}</ul> : <p class="empty">No destinations are published yet.</p>}</div></section></Layout>;
@@ -194,6 +232,29 @@ export function HomePage({ packages, origins, ctx }: { packages: PackageVersion[
             {packages.length > 0 ? <p class="count">{packages.length} available</p> : null}
           </div>
           <form action="/packages" method="get" class="package-search"><label for="home-search">Find a place or experience</label><div><input id="home-search" name="q" type="search" maxlength={80} placeholder="Try Munnar or houseboat" /><button class="btn" type="submit">Search</button></div></form>
+          {packages.length > 0 ? (
+            <div id="catalog-filters" class="catalog-filters">
+              <div class="filter-group">
+                <span class="filter-label">Experience:</span>
+                <div class="filter-pills">
+                  <button type="button" class="pill active" data-filter="all">All Experiences</button>
+                  <button type="button" class="pill" data-filter="houseboat">Houseboats &amp; Backwaters</button>
+                  <button type="button" class="pill" data-filter="tea_plantations">Tea Hills &amp; Wildlife</button>
+                  <button type="button" class="pill" data-filter="heritage">Heritage &amp; Temples</button>
+                  <button type="button" class="pill" data-filter="beaches">Beaches &amp; Coast</button>
+                </div>
+              </div>
+              <div class="filter-group">
+                <span class="filter-label">Duration:</span>
+                <div class="filter-pills">
+                  <button type="button" class="pill active" data-duration="all">Any Length</button>
+                  <button type="button" class="pill" data-duration="short">Quick (≤ 5 Days)</button>
+                  <button type="button" class="pill" data-duration="medium">Standard (6 Days)</button>
+                  <button type="button" class="pill" data-duration="long">Grand (7+ Days)</button>
+                </div>
+              </div>
+            </div>
+          ) : null}
           {packages.length === 0 ? (
             <p class="empty">No packages are published yet. Please check back soon.</p>
           ) : (
@@ -267,7 +328,7 @@ export function PackagePage({ v, origin, ctx, previewPackageId }: { v: PackageVe
   };
 
   return (
-    <Layout meta={meta} overImage={hero !== null} hasBook extraCss={previewPackageId === undefined ? undefined : STAFF_CSS}>
+    <Layout meta={meta} overImage={hero !== null} hasBook packageSlug={v.packageSlug} packageTitle={v.title} extraCss={previewPackageId === undefined ? undefined : STAFF_CSS}>
       {previewPackageId === undefined ? null : <div class="preview-banner" role="status"><strong>Private preview · version {v.versionNo}</strong><span>This draft is not public.</span><a href={`/staff/packages/${previewPackageId}/edit`}>Back to editor</a></div>}
       {hero ? (
         <section class="hero short has-credit" aria-labelledby="pkg-title">
@@ -385,6 +446,32 @@ export function PackagePage({ v, origin, ctx, previewPackageId }: { v: PackageVe
             <section class="route-map" aria-labelledby="route-map-title">
               <h2 id="route-map-title">Explore the stops on a map</h2>
               <p class="hint">OpenStreetMap opens in a new tab. These links show places, not a promised travel route.</p>
+
+              <div class="route-map-visual">
+                <div class="map-viewport">
+                  <svg class="journey-svg-map" viewBox="0 0 740 380" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label={`Route map illustration for ${v.title}`}>
+                    <path d="M 60 20 Q 90 120 120 220 T 260 360" stroke="var(--line)" stroke-width="3" stroke-dasharray="4 6" opacity="0.6" />
+                    <path class="route-path-track" d={generateRouteSvgPath(v.destinations)} stroke="var(--copper)" stroke-width="3" stroke-linecap="round" stroke-dasharray="6 6" />
+                    {v.destinations.map((place, idx) => {
+                      const pt = getDestCoord(place, idx, v.destinations.length);
+                      return (
+                        <g class="waypoint-pin" data-dest={place} tabindex={0} role="button" aria-label={`View details for ${place}`}>
+                          <circle cx={pt.x} cy={pt.y} r="18" fill="var(--surface)" stroke="var(--forest)" stroke-width="2.5" class="pin-ring" />
+                          <circle cx={pt.x} cy={pt.y} r="6" fill="var(--copper)" class="pin-core" />
+                          <text x={pt.x} y={pt.y + 30} text-anchor="middle" class="pin-label">{place}</text>
+                        </g>
+                      );
+                    })}
+                  </svg>
+
+                  <div class="waypoint-card" aria-live="polite">
+                    <h4 class="card-dest-name">Select a destination</h4>
+                    <p class="card-dest-info">Click any waypoint pin on the route map above to preview highlights and jump to its itinerary day.</p>
+                    <a href="#" target="_blank" rel="noopener noreferrer" class="card-dest-link">View on OpenStreetMap ↗</a>
+                  </div>
+                </div>
+              </div>
+
               <ol>
                 {v.destinations.map((place) => (
                   <li>
@@ -403,6 +490,57 @@ export function PackagePage({ v, origin, ctx, previewPackageId }: { v: PackageVe
               <p class="fineprint">Prices for this package are not published yet.</p>
             ) : (
               <>
+                <div id="fare-calculator" class="fare-calc-widget" data-seasons={JSON.stringify(v.seasons)}>
+                  <div class="calc-header">
+                    <span class="calc-kicker">Interactive Price &amp; Party Estimator</span>
+                    <h3 class="calc-title">Customize your travel dates and group</h3>
+                  </div>
+
+                  <div class="calc-controls">
+                    <div class="calc-group">
+                      <span class="calc-label">1. Select Travel Season</span>
+                      <div class="calc-season-picker">
+                        {v.seasons.map((s, idx) => (
+                          <button type="button" class={`calc-season-btn${idx === 0 ? ' active' : ''}`} data-index={idx}>
+                            <strong>{s.name}</strong>
+                            <span>{seasonDates(s)}</span>
+                            <span class="calc-season-rate">{formatInr(s.pricePpTwinInr)} pp</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div class="calc-party-row">
+                      <div class="calc-stepper">
+                        <span class="calc-label">Adults (Twin Sharing)</span>
+                        <div class="stepper-controls">
+                          <button type="button" class="calc-dec-adults" aria-label="Decrease adults">−</button>
+                          <span class="calc-val-adults num">2</span>
+                          <button type="button" class="calc-inc-adults" aria-label="Increase adults">+</button>
+                        </div>
+                      </div>
+
+                      <div class="calc-stepper">
+                        <span class="calc-label">Children (with extra bed)</span>
+                        <div class="stepper-controls">
+                          <button type="button" class="calc-dec-kids" aria-label="Decrease children">−</button>
+                          <span class="calc-val-children num">0</span>
+                          <button type="button" class="calc-inc-kids" aria-label="Increase children">+</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="calc-summary">
+                    <div class="calc-total-box">
+                      <span class="calc-total-label">Estimated Total for Party</span>
+                      <span class="calc-total-fare num">—</span>
+                      <span class="calc-per-person"></span>
+                    </div>
+                    <div class="calc-breakdown"></div>
+                  </div>
+                </div>
+
                 <table class="prices">
                   <caption>All prices are {PRICE_BASIS}. {GST_NOTE}.</caption>
                   <thead>

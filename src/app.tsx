@@ -41,6 +41,7 @@ const SLUG = /^[a-z0-9][a-z0-9-]*$/;
 const ASSETS: Record<string, { pattern: RegExp; type: string }> = {
   images: { pattern: PHOTO_FILE_PATTERN, type: 'image/jpeg' },
   fonts: { pattern: /^hanken-grotesk-latin(-ext)?\.woff2$/, type: 'font/woff2' },
+  scripts: { pattern: /^[a-z0-9-]+\.js$/, type: 'application/javascript; charset=utf-8' },
 };
 
 const doc = (el: { toString(): string }): string => `<!DOCTYPE html>${el.toString()}`;

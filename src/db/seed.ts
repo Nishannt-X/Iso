@@ -266,8 +266,9 @@ function isAppDatabase(path: string): boolean {
   try {
     const probe = openDb(path);
     const initialised = isInitialised(probe);
+    const tables = probe.prepare("SELECT count(*) as count FROM sqlite_master WHERE type='table'").get() as { count: number };
     probe.close();
-    return initialised;
+    return initialised || tables.count === 0;
   } catch {
     return false; // not a SQLite file at all
   }

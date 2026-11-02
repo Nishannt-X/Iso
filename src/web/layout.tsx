@@ -52,7 +52,7 @@ const FAVICON =
  * The page shell. The public site uses the defaults. The staff area passes its own `nav` (the header's right-hand
  * side), `footer` (null for none) and `extraCss`, and a `brandHref`, so both share one head, font and stylesheet.
  */
-export function Layout(props: { meta: PageMeta; overImage?: boolean; hasBook?: boolean; nav?: Child; footer?: Child | null; extraCss?: string; brandHref?: string; children: Child }) {
+export function Layout(props: { meta: PageMeta; overImage?: boolean; hasBook?: boolean; nav?: Child; footer?: Child | null; extraCss?: string; brandHref?: string; packageSlug?: string; packageTitle?: string; children: Child }) {
   const { meta } = props;
   const url = `${meta.siteUrl}${meta.path}`;
   return (
@@ -73,6 +73,7 @@ export function Layout(props: { meta: PageMeta; overImage?: boolean; hasBook?: b
         <link rel="icon" href={FAVICON} />
         <link rel="preload" href="/assets/fonts/hanken-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
         <style dangerouslySetInnerHTML={{ __html: props.extraCss ? CSS + props.extraCss : CSS }} />
+        <script src="/assets/scripts/app.js" defer></script>
       </head>
       <body class={props.hasBook ? 'has-book' : undefined}>
         <a class="skip" href="#main">Skip to content</a>
@@ -112,6 +113,71 @@ export function Layout(props: { meta: PageMeta; overImage?: boolean; hasBook?: b
             </footer>
           )
         )}
+        {props.hasBook ? (
+          <aside id="enquiry-drawer" class="drawer" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+            <div class="drawer-backdrop" data-close-drawer tabindex={-1} />
+            <div class="drawer-panel">
+              <div class="drawer-header">
+                <div>
+                  <span class="drawer-kicker">Custom Journey Enquiry</span>
+                  <h2 id="drawer-title" class="drawer-pkg-title">{props.packageTitle ? `Enquire: ${props.packageTitle}` : 'Enquire About This Journey'}</h2>
+                </div>
+                <button type="button" class="drawer-close" data-close-drawer aria-label="Close enquiry drawer">✕</button>
+              </div>
+
+              <div class="drawer-summary-card">
+                <div class="summary-line">
+                  <span class="summary-label">Selected Season &amp; Rate:</span>
+                  <strong class="drawer-summary-fare">—</strong>
+                </div>
+                <div class="summary-line">
+                  <span class="summary-label">Estimated Party Total:</span>
+                  <strong class="drawer-summary-total">—</strong>
+                </div>
+              </div>
+
+              <form method="post" action="/enquire" class="drawer-form" id="drawer-enquiry-form">
+                <input type="hidden" name="package" id="drawer-input-package" value={props.packageSlug ?? ''} />
+                <input type="hidden" name="season" id="drawer-input-season" value="" />
+                <input type="hidden" name="adults" id="drawer-input-adults" value="2" />
+                <input type="hidden" name="children" id="drawer-input-children" value="0" />
+
+                <div style="display:none;" aria-hidden="true">
+                  <label for="drawer-company_tax_pin">Leave blank</label>
+                  <input type="text" id="drawer-company_tax_pin" name="company_tax_pin" tabindex={-1} autocomplete="off" />
+                </div>
+
+                <div class="field">
+                  <label for="drawer-name">Your Full Name</label>
+                  <input type="text" id="drawer-name" name="name" required maxlength={120} placeholder="e.g. Priya Sharma" />
+                </div>
+
+                <div class="field">
+                  <label for="drawer-email">Email Address</label>
+                  <input type="email" id="drawer-email" name="email" required maxlength={254} placeholder="you@example.com" />
+                </div>
+
+                <div class="field">
+                  <label for="drawer-phone">Phone / WhatsApp (Optional)</label>
+                  <input type="tel" id="drawer-phone" name="phone" maxlength={40} placeholder="+91 98765 43210" />
+                </div>
+
+                <div class="check">
+                  <input type="checkbox" id="drawer-whatsapp" name="whatsapp_consent" value="1" />
+                  <label for="drawer-whatsapp">I consent to WhatsApp messages regarding this enquiry (DPDP Act compliant).</label>
+                </div>
+
+                <div class="field">
+                  <label for="drawer-message">Special Notes or Questions (Optional)</label>
+                  <textarea id="drawer-message" name="message" rows={3} placeholder="Dietary requirements, honeymoon celebrations, private transfers..."></textarea>
+                </div>
+
+                <button type="submit" class="btn drawer-submit">Submit Enquiry &amp; Lock In 1-Hour SLA →</button>
+                <p class="drawer-footnote">Guaranteed response within 1 hour during working hours · No payment required</p>
+              </form>
+            </div>
+          </aside>
+        ) : null}
       </body>
     </html>
   );

@@ -395,5 +395,88 @@ figcaption.credit-below a{color:inherit}
 .ack figcaption{margin-top:.9rem;color:var(--muted);font-size:.875rem}
 .enquiry .back{display:inline-block;margin-top:2rem;font-weight:500}
 
+/* interactive catalog filters */
+.catalog-filters{margin-top:1.5rem;display:flex;flex-direction:column;gap:.9rem;padding:1.25rem;background:var(--surface);border:1px solid var(--line);border-radius:8px}
+.filter-group{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem}
+.filter-label{font-size:.8125rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);min-width:6.5rem}
+.filter-pills{display:flex;flex-wrap:wrap;gap:.5rem}
+.pill{font-family:inherit;font-size:.875rem;padding:.4rem .85rem;border-radius:9999px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;transition:all .18s var(--ease)}
+.pill:hover{border-color:var(--forest);background:var(--surface)}
+.pill.active{background:var(--forest);color:#fff;border-color:var(--forest);font-weight:500}
+.trip.is-hidden{display:none!important}
+
+/* interactive fare & party calculator */
+.fare-calc-widget{margin-top:1.5rem;margin-bottom:2rem;padding:1.5rem;background:var(--surface-warm);border:1px solid var(--line);border-radius:8px}
+.calc-header{margin-bottom:1.25rem}
+.calc-kicker{font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--copper);display:block;margin-bottom:.25rem}
+.calc-title{font-size:1.25rem;font-weight:500;color:var(--ink)}
+.calc-season-picker{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.75rem;margin-top:.5rem}
+.calc-season-btn{text-align:left;background:var(--surface);border:1.5px solid var(--line);border-radius:6px;padding:.75rem;cursor:pointer;display:flex;flex-direction:column;gap:.2rem;transition:border-color .15s}
+.calc-season-btn:hover{border-color:var(--forest)}
+.calc-season-btn.active{border-color:var(--forest);background:#f0f7f5;box-shadow:0 0 0 1px var(--forest)}
+.calc-season-btn strong{font-size:.9375rem;color:var(--forest-dark);font-weight:600}
+.calc-season-btn span{font-size:.8125rem;color:var(--muted)}
+.calc-season-btn .calc-season-rate{font-size:.875rem;font-weight:600;color:var(--copper);margin-top:.25rem}
+.calc-party-row{display:flex;flex-wrap:wrap;gap:1.5rem;margin-top:1.25rem}
+.calc-stepper{display:flex;flex-direction:column;gap:.4rem}
+.calc-label{font-size:.8125rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.stepper-controls{display:inline-flex;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:6px;overflow:hidden;width:fit-content}
+.stepper-controls button{width:2.5rem;height:2.5rem;background:none;border:none;font-size:1.2rem;font-weight:600;color:var(--forest);cursor:pointer;transition:background .1s}
+.stepper-controls button:hover{background:var(--surface-warm)}
+.stepper-controls .num{width:2.75rem;text-align:center;font-weight:600;font-size:1.05rem}
+.calc-summary{margin-top:1.5rem;padding-top:1.25rem;border-top:1px dashed var(--line);display:grid;gap:1rem}
+@media(min-width:44rem){.calc-summary{grid-template-columns:1fr 1fr;align-items:center}}
+.calc-total-box{display:flex;flex-direction:column;gap:.2rem}
+.calc-total-label{font-size:.8125rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.calc-total-fare{font-size:2.125rem;font-weight:500;color:var(--forest-dark);letter-spacing:-.02em}
+.calc-per-person{font-size:.875rem;color:var(--muted)}
+.calc-breakdown{font-size:.875rem;display:flex;flex-direction:column;gap:.35rem}
+.calc-row{display:flex;justify-content:space-between;color:var(--muted)}
+.calc-row span:last-child{font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
+
+/* interactive svg route map */
+.route-map-visual{margin-top:1.25rem;margin-bottom:1.5rem;background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.map-viewport{position:relative;width:100%;padding:1rem}
+.journey-svg-map{width:100%;height:auto;max-height:380px;display:block}
+.waypoint-pin{cursor:pointer;transition:transform .2s cubic-bezier(.34,1.56,.64,1);outline:none}
+.waypoint-pin:hover,.waypoint-pin.is-active,.waypoint-pin:focus-visible{transform:scale(1.15)}
+.pin-ring{transition:fill .2s,stroke .2s}
+.waypoint-pin:hover .pin-ring,.waypoint-pin.is-active .pin-ring{fill:#f0f7f5;stroke:var(--copper);stroke-width:3.5px}
+.pin-label{font-size:13px;font-weight:600;fill:var(--ink);pointer-events:none}
+.waypoint-card{margin-top:1rem;padding:1rem;background:var(--surface-warm);border-radius:6px;border:1px solid var(--line);display:none}
+.waypoint-card.is-open{display:block;animation:fadeIn .25s ease-out}
+.card-dest-name{font-size:1.05rem;font-weight:600;color:var(--forest);margin-bottom:.25rem}
+.card-dest-info{font-size:.875rem;color:var(--ink);margin-bottom:.5rem;line-height:1.45}
+.card-dest-link{font-size:.8125rem;color:var(--forest);font-weight:500;text-decoration:underline}
+.day-highlight{background:#fff8e8!important;border-left:3px solid var(--copper)!important;transition:background .3s ease}
+
+/* slide-over enquiry drawer */
+.drawer{position:fixed;inset:0;z-index:100;pointer-events:none;visibility:hidden;transition:visibility .3s}
+.drawer.is-open{pointer-events:auto;visibility:visible}
+.drawer-backdrop{position:absolute;inset:0;background:rgba(5,38,34,.65);opacity:0;transition:opacity .3s ease;backdrop-filter:blur(2px)}
+.drawer.is-open .drawer-backdrop{opacity:1}
+.drawer-panel{position:absolute;top:0;right:0;bottom:0;width:100%;max-width:30rem;background:var(--bg);box-shadow:-8px 0 24px rgba(0,0,0,.15);transform:translateX(100%);transition:transform .3s cubic-bezier(.22,1,.36,1);display:flex;flex-direction:column;overflow-y:auto;padding:2rem 1.75rem}
+.drawer.is-open .drawer-panel{transform:translateX(0)}
+.drawer-header{display:flex;justify-content:space-between;align-items:start;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid var(--line)}
+.drawer-kicker{font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--copper);display:block}
+.drawer-pkg-title{font-size:1.25rem;font-weight:500;color:var(--forest-dark);margin-top:.2rem}
+.drawer-close{background:none;border:1px solid var(--line);border-radius:50%;width:2.25rem;height:2.25rem;font-size:1.1rem;cursor:pointer;color:var(--muted);display:inline-flex;align-items:center;justify-content:center;transition:all .15s}
+.drawer-close:hover{background:var(--surface);color:var(--ink);border-color:var(--forest)}
+.drawer-summary-card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:.85rem 1rem;margin-bottom:1.5rem;display:flex;flex-direction:column;gap:.35rem;font-size:.875rem}
+.summary-line{display:flex;justify-content:space-between;align-items:baseline}
+.summary-label{color:var(--muted)}
+.drawer-form{display:flex;flex-direction:column;gap:1.1rem}
+.drawer-form .field{margin-top:0}
+.drawer-submit{width:100%;margin-top:.5rem}
+.drawer-footnote{font-size:.8125rem;color:var(--muted);text-align:center;margin-top:.5rem}
+
+/* plain-english jargon tooltips */
+.tip-wrap{position:relative;display:inline-block}
+.tip-btn{background:none;border:none;font-size:.8125rem;color:var(--forest);text-decoration:underline dotted;cursor:pointer;padding:0 .2rem;font-weight:500}
+.tip-box{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);width:16rem;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-md);border-radius:6px;padding:.75rem .9rem;font-size:.8125rem;line-height:1.4;color:var(--ink);display:none;z-index:20;text-align:left}
+.tip-open .tip-box{display:block;animation:fadeIn .2s ease-out}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
 `;
