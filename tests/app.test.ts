@@ -189,7 +189,8 @@ describe('sitemap.xml and robots.txt', () => {
     const body = await text(res);
     assert.ok(body.includes(`<loc>${SITE}/</loc>`));
     assert.ok(body.includes(`<loc>${SITE}${KL07}</loc>`));
-    assert.equal((body.match(/<url>/g) ?? []).length, 7); // home + 6 live packages
+    assert.equal((body.match(/\/packages\/[^<]+<\/loc>/g) ?? []).length, 6); // the 6 live package pages
+    assert.ok(body.includes(`<loc>${SITE}/destinations</loc>`) && body.includes(`<loc>${SITE}/journal</loc>`));
     assert.match(body, /<lastmod>\d{4}-\d{2}-\d{2}<\/lastmod>/);
     assert.ok(!body.includes('madurai'));
     assert.ok(!body.includes('//packages'));
@@ -284,3 +285,21 @@ describe('GET /healthz', () => {
   });
 });
 
+
+describe('legacy redirects', () => {
+  const redirects = new Map([['/old/kerala.html', '/packages']]);
+  const app = createApp(resetDatabase(':memory:'), { siteUrl: SITE, redirects });
+
+  test('an old URL gets a 301 to its new same-site path; unknown paths still 404', async () => {
+    const res = await app.request('/old/kerala.html');
+    assert.equal(res.status, 301);
+    assert.equal(res.headers.get('location'), '/packages');
+    assert.equal((await app.request('/old/other.html')).status, 404);
+  });
+
+  test('only GET and HEAD are redirected, and no map means no redirects', async () => {
+    assert.notEqual((await app.request('/old/kerala.html', { method: 'POST' })).status, 301);
+    const plain = createApp(resetDatabase(':memory:'), { siteUrl: SITE });
+    assert.equal((await plain.request('/old/kerala.html')).status, 404);
+  });
+});

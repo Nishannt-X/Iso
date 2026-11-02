@@ -164,7 +164,7 @@ describe('workspace', () => {
     assert.match(body, /<dt>Budget<\/dt><dd><span class="none">Not given<\/span><\/dd>/);
     assert.match(body, /<dt>Package<\/dt><dd><a href="\/packages\/munnar-thekkady-and-alleppey-houseboat-6-days">/);
     assert.match(body, /<dt>Source<\/dt><dd>Sample enquiry from the client brief/);
-    assert.match(body, /<section class="panel analysis" id="analysis"[^>]*>[\s\S]*Not analysed yet/);
+    assert.match(body, /<section class="panel analysis" id="analysis"[^>]*>[\s\S]*No analysis yet/);
     assert.ok(!/Extracted|Suggested packages|Confidence/i.test(body), 'no invented analysis');
     assert.ok(body.includes('Sample from brief') || body.includes('sample enquiry from the client brief'));
   });
