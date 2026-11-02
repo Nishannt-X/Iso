@@ -193,7 +193,7 @@ figcaption.credit-below a{color:inherit}
 .field [aria-invalid=true]{border:2px solid #a31d1d}
 .error{color:#a31d1d;font-size:.9375rem;margin-top:.4rem;font-weight:500}
 .pair{display:grid;grid-template-columns:1fr 1fr;gap:0 1rem}
-@media(min-width:34rem){.budget{grid-template-columns:3fr 2fr}}
+@media(min-width:34rem){.budget{grid-template-columns:3fr 2fr;align-items:end}}
 @media(max-width:33.99rem){.budget{grid-template-columns:1fr}}
 .consent{border-top:1px solid var(--line)}
 .check{display:grid;grid-template-columns:1.5rem 1fr;gap:.75rem;align-items:start}
