@@ -1,4 +1,3 @@
-import { getConnInfo } from '@hono/node-server/conninfo';
 import type { Context, Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import type { DatabaseSync } from '../db/db.js';
@@ -10,6 +9,7 @@ import { DomainError, getLiveVersionBySlug, type PackageVersion } from '../domai
 import { RateLimiter } from '../domain/rate-limit.js';
 import { AcknowledgementPage, EnquiryFormPage, type FormView } from './enquiry-pages.js';
 import { MessagePage, type PageContext } from './pages.js';
+import { clientKey, isSameSite } from './request.js';
 
 // Public enquiry flow (slice S3):
 //   GET  /enquire?package=<slug>        the form for one live package
@@ -53,38 +53,6 @@ class RateLimited extends Error {
 function addDays(ymd: string, days: number): string {
   const [y, m, d] = ymd.split('-').map(Number) as [number, number, number];
   return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
-}
-
-/** The address rate limits are counted against. Behind one trusted proxy, its X-Forwarded-For entry; otherwise the socket peer. */
-function clientKey(c: Context, trustProxy: boolean): string {
-  if (trustProxy) {
-    const last = c.req.header('x-forwarded-for')?.split(',').pop()?.trim();
-    if (last) return last;
-  }
-  try {
-    return getConnInfo(c).remote.address ?? 'unknown';
-  } catch {
-    return 'unknown'; // no socket, e.g. app.request() in tests
-  }
-}
-
-/**
- * Accepts a request that comes from this site. A browser always sends Origin on a POST; if it is
- * absent, Sec-Fetch-Site decides. A client that sends neither is not a browser acting on someone's
- * behalf, so only the rate limits apply to it.
- */
-function isSameSite(c: Context, siteOrigin: string): boolean {
-  const origin = c.req.header('origin');
-  if (origin !== undefined) {
-    if (origin === siteOrigin) return true;
-    try {
-      return new URL(origin).host === c.req.header('host'); // same origin even when SITE_URL is not the name in use
-    } catch {
-      return false; // includes the literal "null" origin
-    }
-  }
-  const fetchSite = c.req.header('sec-fetch-site');
-  return fetchSite === undefined || fetchSite === 'same-origin' || fetchSite === 'none';
 }
 
 function readForm(body: Record<string, unknown>): { raw: RawForm; slug: string; key: string | null; honeypot: string } {
