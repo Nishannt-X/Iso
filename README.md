@@ -38,8 +38,8 @@ On public site URLs (non-localhost), the known demo password (`demo-staff-passwo
 | `DB_PATH` | now | SQLite file, default `data/kochi-tours.db` |
 | `SITE_URL` | now | Public origin for canonical links, `sitemap.xml` and `robots.txt`; default `http://localhost:$PORT` |
 | `TRUST_PROXY` | now | Set to `1` only behind exactly one trusted reverse proxy; the enquiry rate limits then use the last `X-Forwarded-For` entry. Default off |
-| `ANTHROPIC_API_KEY` | S5 | Live AI extraction. Set privately; never commit or paste it |
-| `AI_PROVIDER` | S5 | `anthropic` (default when a key is set) or `rules` |
+| `GEMINI_API_KEY` | S5 | Live Google Gemini API extraction. Set privately; never commit or paste it |
+| `AI_PROVIDER` | S5 | `gemini` (when a key is set) or `rules` |
 | `AI_MODEL` | S5 | Overrides the default extraction model |
 | `DEMO_STAFF_PASSWORD` | now | Password for the three synthetic demo staff accounts. When unset during `npm run db:reset`, accounts are created inactive with login disabled, eliminating default credentials. Required before public use (must be non-default) |
 

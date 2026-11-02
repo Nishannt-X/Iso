@@ -1,3 +1,10 @@
+## 2026-11-02 · Expand to full selected brief and use Google Gemini for AI
+- **Status:** accepted
+- **Context:** The owner explicitly expanded the goal from the CORE BUILD slice to every MUST HAVE flow and replaced Anthropic with Google Gemini API. The owner also requested direct implementation without delegated models.
+- **Decision:** Keep the reviewed Hono/SQLite base and complete the package CMS and AI core before the broader blog, quote, search and channel flows. Use Google Gemini API server-side with an honest local rules fallback; no model-produced prices or automatic sending. Historical redirects require a client-supplied URL map.
+- **Consequences:** This is a larger scope than the assignment's recommended core slice. Build and verify each flow sequentially; disclose any unfinished or unverified breadth in the final TDD. No Anthropic dependency or runtime call is used.
+- **Decided by:** Human project owner · **Related:** `feat/kochi-tours-core`
+
 ## 2026-11-02 · S4 staff area: authentication, sessions, CSRF, triage inbox, workspace, and audit trail
 - **Status:** accepted
 - **Context:** S4 requires a staff back-office for Company A: authentication, session handling, role checks, inbox triage, enquiry workspace, internal notes, mock replies, and audit logging with personal data protection.

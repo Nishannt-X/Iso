@@ -3,6 +3,7 @@ import { describe, test } from 'node:test';
 import { all, get, run, type DatabaseSync } from '../../src/db/db.js';
 import { DEMO_STAFF_PASSWORD, resetDatabase } from '../../src/db/seed.js';
 import { createEnquiry, getAcknowledgement, newSubmissionKey, type EnquiryInput } from '../../src/domain/enquiries.js';
+import { PRIVACY_NOTICE_VERSION } from '../../src/domain/notices.js';
 import { DomainError } from '../../src/domain/packages.js';
 import {
   addNote, assignEnquiry, changeStatus, DEFAULT_QUERY, getWorkspace, inboxQueryString, listActivity, listInbox, mayAssign, PAGE_SIZE,
@@ -459,7 +460,7 @@ describe('getWorkspace and listActivity', () => {
     const w = getWorkspace(f.db, id, T0)!;
     assert.deepEqual(
       [w.enquiry.name, w.enquiry.travelStart, w.enquiry.childAges, w.enquiry.budgetInr, w.enquiry.budgetBasis, w.enquiry.message, w.enquiry.whatsappConsent, w.enquiry.privacyNoticeVersion],
-      ['Asha Menon', '2026-12-20', [4, 9], 120000, 'total', 'Line one\n\nLine two <b>x</b>', true, 'draft-1'],
+      ['Asha Menon', '2026-12-20', [4, 9], 120000, 'total', 'Line one\n\nLine two <b>x</b>', true, PRIVACY_NOTICE_VERSION],
     );
     assert.ok(w.enquiry.whatsappConsentText && w.enquiry.whatsappConsentAt);
     assert.deepEqual([w.package.code, w.package.versionNo, w.package.isLive, w.status, w.assigneeId, w.lockVersion], ['PKG-KL-07', 1, true, 'new', null, 1]);

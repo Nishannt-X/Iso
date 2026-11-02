@@ -5,10 +5,11 @@
 // follow-ups need consent. It gives no notice wording, retention period or grievance contact, so
 // none is invented here. Company A and its legal adviser must approve this text before launch.
 
-export const PRIVACY_NOTICE_VERSION = 'draft-1';
+export const PRIVACY_NOTICE_VERSION = 'draft-2';
 
 export const PRIVACY_NOTICE: readonly string[] = [
   'We use the details you enter here only to reply to this enquiry, including to prepare a quote. They are saved in Company A’s enquiry system and can be seen by the staff who handle enquiries.',
+  'When AI analysis is enabled, your enquiry message may be processed by Google Gemini API to help staff extract trip details and draft a reply. A consultant reviews the result before any reply is recorded.',
   'Sending the form is not consent to WhatsApp messages. That is a separate, optional choice above.',
 ];
 

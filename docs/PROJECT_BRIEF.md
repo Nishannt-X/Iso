@@ -16,7 +16,7 @@
 5. Submission rule relayed by the owner (**not in the client brief**): one ZIP of at most 25 MB containing exactly a TDD (PDF or Word) and `deployment.md`; the TDD begins with the public GitHub URL and includes a live app URL if deployed.
 
 ## In scope
-The core slice, delivered in slices on one branch (`feat/kochi-tours-core`). Status in brackets.
+The owner expanded scope to the full selected brief after S4. Work remains on `feat/kochi-tours-core`; status is shown below.
 
 | Slice | Content | Status |
 |---|---|---|
@@ -25,19 +25,21 @@ The core slice, delivered in slices on one branch (`feat/kochi-tours-core`). Sta
 | S2 | Screens 1–2 (home/list, package detail), seasonal price display, photos with provenance, sitemap, robots, 404 | this branch |
 | S3 | Screens 3–4 (enquiry form, acknowledgement), consent, honeypot, rate limit, mock outbox, seeded sample enquiry | this branch |
 | S4 | Screens 5–6 (staff login, inbox), sessions, CSRF, role checks | this branch |
-| S5 | AI extraction (live Anthropic primary, labelled rules fallback), ranking, drafting, price guard, screen 7 | planned |
+| S5 | AI extraction (live Google Gemini API, labelled rules fallback), ranking, drafting, price guard, screen 7 | planned |
 | S6 | Screen 8 (package editor, optimistic lock, publish, restore, history, preview) | planned |
-| S7 | States, phone and accessibility pass, performance, screenshots | planned |
-| S8 | TDD, `deployment.md`, DECISIONS, rubric, ZIP | planned |
+| S7 | Full MUST HAVE depth: destination/search/map, blog CMS, package scheduling/duplication, quote PDF/link, additional enquiry channels and editor role | planned |
+| S8 | States, phone and accessibility pass, performance, screenshots | planned |
+| S9 | TDD, `deployment.md`, DECISIONS, rubric, ZIP | planned |
 
 The 8 screens: 1 Home/list · 2 Package detail · 3 Enquiry form · 4 Acknowledgement (public status link `/enquiry/received/:token`) · 5 Staff login · 6 Inbox · 7 Enquiry workspace · 8 Admin packages.
 
 Deliverables of S0+S1: a running server with `GET /healthz` and `GET /` (a plain list of live packages), the full catalogue schema with database-level invariants, the pricing and season engine, a draft/publish/restore domain layer, and synthetic seed data.
 
 ## Non-goals (explicitly out)
-- Full breadth of an unselected problem statement; prioritize the core slice.
+- Full breadth of an unselected problem statement.
 - Features not justified by the selected problem statement.
-- Traveller accounts, CSV import, signed preview links, itinerary diff view. Deferred although the brief mentions them (outside its CORE BUILD): the redirect engine for 140 old URLs, Hindi and German, blog CMS, quote builder, maps, and search beyond the package list.
+- Traveller accounts, CSV import, signed preview links, itinerary diff view. Hindi and German are described as later languages in the brief, so English remains the launch language.
+- The 140 historical redirects cannot be populated without the client's old URL list. Build an importable redirect mapping and document this missing input rather than inventing URLs.
 - Any mock or replayed LLM at runtime. This is a project decision, not a brief requirement: the brief only says to mock payments, messages and outside systems. The AI path is live or an honestly labelled rules fallback.
 - Deploying (human only; the repo only ships a Dockerfile and `deployment.md` in a later slice).
 
@@ -56,7 +58,7 @@ The brief is in [`docs/CLIENT_BRIEF.md`](CLIENT_BRIEF.md). Everything in this ta
 | A8 | Season is decided by start date, or by month when only a month is known. A stay or month spanning seasons is priced at the cheapest covered season as a lower bound, with a reason code. |
 | A9 | Travellers do not log in (assumption: the brief's "traveller" role is the public visitor). They follow an unguessable status link. The staff table has no traveller role. |
 | A10 | The sample table (A1) is from the brief. `nights` (= days − 1), region labels, all itinerary, summary, inclusion and tag text, and the five `SYN-*` packages are **assumed or synthetic**. Seed rows record this in `packages.data_origin` and `change_note`. |
-| A11 | The slug is editable until a package's first publish, then locked. This replaces a redirect engine. |
+| A11 | The slug is editable until a package's first publish, then locked. Historical redirects use a separate mapping once the client provides its old URLs. |
 | A12 | All sample data is synthetic. No real personal data is stored or committed. |
 | A13 | **Enquiry form fields (S3).** The brief names dates, travellers, destination, budget, a message and contact, but not which are required. Required here: name, adults, children, and an email or a phone. Everything else is optional. Limits (50 adults, 20 children, ₹1,000 to ₹99.9 crore, 2,000 characters, a start date within two years) are abuse bounds. The form is reached only from a live package's Enquire button; there is no general enquiry page. |
 | A14 | **Acknowledgement.** The brief says a fixed template. This build's text has no name, price, date or reply-time promise (the brief gives no working hours). The channel is email if given, else WhatsApp only with consent, else SMS. Nothing is sent; messages are recorded in a mock outbox and the status page says so. |
@@ -68,7 +70,7 @@ The brief is in [`docs/CLIENT_BRIEF.md`](CLIENT_BRIEF.md). Everything in this ta
 - Language / framework / runtime: TypeScript on Node 22 (`>=22.13`), Hono with JSX server rendering, SQLite via the built-in `node:sqlite` (experimental in Node 22), `node:test`.
 - Package manager: npm; exact versions pinned in `package.json` and `package-lock.json`.
 - Hosting / environments: runs locally first; Dockerfile and `deployment.md` in a later slice. Deploying is human-only.
-- Performance, security, compliance constraints: Validate inputs, enforce access control, keep secrets and real personal data out of the repository, and keep the repository public through review. The Anthropic API key is set privately by the human in their own environment; it is never requested in chat, written to a file or committed.
+- Performance, security, compliance constraints: Validate inputs, enforce access control, keep secrets and real personal data out of the repository, and keep the repository public through review. The Google Gemini API key is set privately by the human in their own environment; it is never requested in chat, written to a file or committed.
 - Budget / deadlines: the client brief says ₹8.5 lakh and 7 weeks. Separately, the owner's assignment allows seven days from when the step opens (relayed, not in the client brief; opening time not provided).
 
 ## Commands (keep identical to AGENTS.md §0)
@@ -81,15 +83,15 @@ setup: `npm ci` · run: `npm run dev` · test: `npm test` · lint: `npm run lint
 | # | Milestone | Done when |
 |---|-----------|-----------|
 | 1 | Select the problem statement | CORE BUILD and assumptions are recorded (this document). |
-| 2 | Design and build the core slice | Slices S0–S7: main flows, AI behavior, and important tests pass. |
-| 3 | Package submission | TDD and `deployment.md` are verified inside one ZIP (S8). |
+| 2 | Design and build the selected brief | Slices S0–S8: main flows, AI behavior, optional depth requested by the owner, and important tests pass. |
+| 3 | Package submission | TDD and `deployment.md` are verified inside one ZIP (S9). |
 
 ## Risks & open questions
 - The privacy and WhatsApp consent text is a draft (A15). The public site must not launch with it unreviewed. When S5 sends enquiry text to a live AI provider, the notice must say so.
 - Rate-limit counters are in memory, per process, and reset on restart; behind a reverse proxy set `TRUST_PROXY=1`, otherwise every visitor shares the proxy's address.
 - Not verified in S3: other browsers, a screen reader, real 4G timing, tablet widths.
 - Photographs are Creative Commons images from Wikimedia Commons used as placeholders (credited on each page). Company A must supply licensed photography before launch.
-- The live Anthropic path cannot be verified until the human sets `ANTHROPIC_API_KEY` locally and runs the check script (built in S5).
+- The live Gemini path cannot be verified until the human sets `GEMINI_API_KEY` locally and runs the check script (built in S5).
 - `node:sqlite` is experimental; `better-sqlite3` is the fallback behind `src/db/db.ts`.
 - SQLite needs a persistent volume on any deploy target.
 - GitHub URL, deployment target, and exact deadline start time remain to be confirmed.
