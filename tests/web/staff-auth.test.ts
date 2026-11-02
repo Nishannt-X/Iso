@@ -22,7 +22,7 @@ describe('staff area requires a session', () => {
     const before = [count(h.db, 'SELECT SUM(lock_version) AS n FROM enquiry_workflow'), count(h.db, 'SELECT COUNT(*) AS n FROM enquiry_notes'), count(h.db, 'SELECT COUNT(*) AS n FROM audit_log')];
     for (const [path, fields] of [
       ['/staff/enquiries/1/status', { status: 'closed', lock: '1' }], ['/staff/enquiries/1/assign', { assignee: '2', lock: '1' }],
-      ['/staff/enquiries/1/notes', { body: 'x' }], ['/staff/enquiries/1/reply/draft', { channel: 'email', body: 'x' }],
+      ['/staff/enquiries/1/notes', { body: 'x' }], ['/staff/enquiries/1/reply/draft', { channel: 'email', body: 'x', lock: '1' }],
       ['/staff/enquiries/1/reply/record', { channel: 'email', body: 'x', approve: 'yes', lock: '1' }], ['/staff/logout', {}],
     ] as const) {
       const res = await h.post(path, { ...fields, _csrf: 'anything' });

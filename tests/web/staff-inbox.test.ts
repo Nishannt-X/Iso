@@ -341,6 +341,21 @@ describe('workspace: assign, status, note, reply', () => {
     assert.match(withDraft, /Draft saved\. Nothing has been recorded or sent/);
     assert.match(withDraft, /Dear guest,\nThank you for writing\./);
     assert.match(withDraft, /Draft last saved by Demo Consultant One/);
+    assert.equal(lockOf(withDraft), '2');
+
+    // Stale page saves (two independent submissions): both draft save and reply record fail with 409 conflict
+    const staleDraft = await h.post(`/staff/enquiries/${id}/reply/draft`, { ...fields, lock: '1', body: 'Stale draft text' }, cookie);
+    assert.equal(staleDraft.status, 409);
+    assert.match(await text(staleDraft), /Someone else changed this enquiry/);
+
+    const staleRecord = await h.post(`/staff/enquiries/${id}/reply/record`, { ...fields, lock: '1', approve: 'yes' }, cookie);
+    assert.equal(staleRecord.status, 409);
+    assert.match(await text(staleRecord), /Someone else changed this enquiry/);
+
+    // Missing or invalid lock also fails with 409:
+    const badLock = await h.post(`/staff/enquiries/${id}/reply/draft`, { ...fields, lock: 'invalid', body: 'Bad lock text' }, cookie);
+    assert.equal(badLock.status, 409);
+    assert.match(await text(badLock), /This page is out of date/);
 
     const unticked = await h.post(`/staff/enquiries/${id}/reply/record`, { ...fields, lock: lockOf(withDraft) }, cookie);
     assert.equal(unticked.status, 422);

@@ -326,7 +326,7 @@ function checkLock(row: WorkflowRow, expected: number): void {
   }
 }
 
-function bump(db: DatabaseSync, enquiryId: number, at: string, set: string, ...params: Param[]): void {
+function bump(db: DatabaseSync, enquiryId: number, at: string, set = 'enquiry_id = enquiry_id', ...params: Param[]): void {
   run(db, `UPDATE enquiry_workflow SET ${set}, lock_version = lock_version + 1, updated_at = ? WHERE enquiry_id = ?`, ...params, at, enquiryId);
 }
 
@@ -417,10 +417,13 @@ function checkReply(db: DatabaseSync, input: ReplyInput): CheckedReply & { refer
   return { channel: option.channel, recipient: option.recipient, subject, body, reference: e.reference };
 }
 
-/** Saves the working draft (one per enquiry). Nothing is recorded as a message and nothing is sent. */
-export function saveReplyDraft(db: DatabaseSync, actor: StaffUser, input: ReplyInput, now: Date): void {
+/** Saves the working draft (one per enquiry). Advances lock_version so stale pages conflict. Nothing is recorded as a message and nothing is sent. */
+export function saveReplyDraft(
+  db: DatabaseSync, actor: StaffUser, input: ReplyInput & { expectedLock: number }, now: Date,
+): void {
   transaction(db, () => {
     const row = loadWorkflow(db, input.enquiryId);
+    checkLock(row, input.expectedLock);
     if (row.status === 'closed') throw new DomainError('invalid_state', 'This enquiry is closed. Reopen it before drafting a reply.');
     const r = checkReply(db, input);
     run(
@@ -430,6 +433,7 @@ export function saveReplyDraft(db: DatabaseSync, actor: StaffUser, input: ReplyI
          updated_by = excluded.updated_by, updated_at = excluded.updated_at`,
       input.enquiryId, r.channel, r.subject, r.body, actor.id, now.toISOString(),
     );
+    bump(db, input.enquiryId, now.toISOString());
     writeAudit(db, actor.id, 'enquiry.reply_draft', 'enquiry', input.enquiryId, { channel: r.channel });
   });
 }

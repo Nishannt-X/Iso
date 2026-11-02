@@ -243,7 +243,7 @@ export function registerStaffRoutes(app: Hono, db: DatabaseSync, ctx: PageContex
 
   staff.post('/enquiries/:id/reply/draft', (c) =>
     act(c, 'reply', (body, user, id, now) => {
-      saveReplyDraft(db, user, replyInput(body, id), now);
+      saveReplyDraft(db, user, { ...replyInput(body, id), expectedLock: lockOf(body) }, now);
       return 'draft';
     }),
   );
