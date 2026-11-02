@@ -1,12 +1,17 @@
 import { serve } from '@hono/node-server';
 import { createApp } from './app.js';
 import { loadConfig } from './config.js';
-import { isInitialised, openDb } from './db/db.js';
+import { isInitialised, openDb, SCHEMA_VERSION, schemaVersion } from './db/db.js';
 
 const config = loadConfig();
 const db = openDb(config.dbPath);
 if (!isInitialised(db)) {
   console.error(`Database at "${config.dbPath}" is empty. Run "npm run db:reset" first.`);
+  process.exit(1);
+}
+
+if (schemaVersion(db) < SCHEMA_VERSION) {
+  console.error(`Database at "${config.dbPath}" uses an older schema. Run "npm run db:reset" to rebuild it (this deletes its data).`);
   process.exit(1);
 }
 

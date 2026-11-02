@@ -18,8 +18,15 @@ export function initSchema(db: DatabaseSync): void {
   db.exec(readFileSync(new URL('./schema.sql', import.meta.url), 'utf-8'));
 }
 
+/** Bumped whenever schema.sql changes; a database built by an older schema must be reset. */
+export const SCHEMA_VERSION = 2;
+
+export function schemaVersion(db: DatabaseSync): number {
+  return get<{ user_version: number }>(db, 'PRAGMA user_version')?.user_version ?? 0;
+}
+
 export function isInitialised(db: DatabaseSync): boolean {
-  return (get<{ user_version: number }>(db, 'PRAGMA user_version')?.user_version ?? 0) >= 1;
+  return schemaVersion(db) >= 1;
 }
 
 export function get<T>(db: DatabaseSync, sql: string, ...params: Param[]): T | undefined {

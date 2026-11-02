@@ -1,6 +1,6 @@
 -- Company A Kochi tour operator: S1 schema (catalogue, versions, pricing config).
 -- Applied to an empty database by initSchema(); `npm run db:reset` rebuilds from scratch.
--- Later slices append their tables (enquiries, outbox, sessions...) here.
+-- Later slices append their tables (sessions, AI extractions...) here.
 -- Foreign keys are enforced per connection by openDb() (PRAGMA foreign_keys=ON).
 
 CREATE TABLE staff_users (
@@ -205,4 +205,76 @@ CREATE TRIGGER trg_seasons_del BEFORE DELETE ON package_version_seasons
 WHEN (SELECT status FROM package_versions WHERE id = OLD.version_id) <> 'draft'
 BEGIN SELECT RAISE(ABORT, 'child rows of a non-draft version are immutable'); END;
 
-PRAGMA user_version = 1;
+-- ---------------------------------------------------------------------------
+-- S3: public enquiries and the mock outbox.
+-- ---------------------------------------------------------------------------
+
+-- One row per submitted enquiry: an immutable record of exactly what the traveller sent
+-- (trg_enquiries_immutable). Staff workflow (status, assignment, notes) and AI output live in
+-- later tables that reference enquiries.id, so the original message is always available to compare.
+CREATE TABLE enquiries (
+  id                      INTEGER PRIMARY KEY,
+  -- Random 8-character code the traveller can quote. It is not an access key.
+  reference               TEXT NOT NULL UNIQUE,
+  -- 192-bit random token in the public status link /enquiry/received/:token. Treat as a secret.
+  public_token            TEXT NOT NULL UNIQUE,
+  -- Idempotency key issued with the form, so a resubmission returns the same enquiry.
+  submission_key          TEXT NOT NULL UNIQUE,
+  -- SHA-256 of the normalised submission, to recognise an identical resend from a fresh form.
+  dedupe_hash             TEXT NOT NULL,
+  -- 'seed_sample' marks the brief's sample enquiry inserted by the seed; everything else is 'web_form'.
+  origin                  TEXT NOT NULL DEFAULT 'web_form' CHECK (origin IN ('web_form', 'seed_sample')),
+  -- The package version that was live when the form was sent. The package is reached through it.
+  source_version_id       INTEGER NOT NULL REFERENCES package_versions(id) ON DELETE RESTRICT,
+  name                    TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 120),
+  email                   TEXT CHECK (email IS NULL OR length(email) <= 254),
+  phone                   TEXT CHECK (phone IS NULL OR length(phone) <= 20),
+  travel_start            TEXT CHECK (travel_start IS NULL OR travel_start GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'),
+  adults                  INTEGER NOT NULL CHECK (adults BETWEEN 1 AND 50),
+  children                INTEGER NOT NULL CHECK (children BETWEEN 0 AND 20),
+  child_ages_json         TEXT NOT NULL DEFAULT '[]',
+  destination             TEXT CHECK (destination IS NULL OR length(destination) <= 120),
+  -- NULL means "not given", never zero. The basis says whether the figure is for the whole party.
+  budget_inr              INTEGER CHECK (budget_inr IS NULL OR budget_inr > 0),
+  budget_basis            TEXT CHECK (budget_basis IS NULL OR budget_basis IN ('total', 'per_person')),
+  -- The traveller's own words, kept verbatim after control characters are stripped.
+  message                 TEXT NOT NULL CHECK (length(message) <= 2000),
+  -- WhatsApp consent is separate from submitting the form. The wording shown is stored with it.
+  whatsapp_consent        INTEGER NOT NULL CHECK (whatsapp_consent IN (0, 1)),
+  whatsapp_consent_text   TEXT,
+  whatsapp_consent_at     TEXT,
+  privacy_notice_version  TEXT NOT NULL,
+  created_at              TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  -- A way to reply; a budget always comes with its basis; consent needs a phone number and its recorded wording.
+  CHECK (email IS NOT NULL OR phone IS NOT NULL),
+  CHECK ((budget_inr IS NULL) = (budget_basis IS NULL)),
+  CHECK (whatsapp_consent = 0 OR (phone IS NOT NULL AND whatsapp_consent_text IS NOT NULL AND whatsapp_consent_at IS NOT NULL))
+);
+CREATE INDEX ix_enquiries_dedupe ON enquiries(dedupe_hash, created_at);
+CREATE INDEX ix_enquiries_created ON enquiries(created_at);
+CREATE INDEX ix_enquiries_version ON enquiries(source_version_id);
+
+CREATE TRIGGER trg_enquiries_immutable
+BEFORE UPDATE ON enquiries
+BEGIN
+  SELECT RAISE(ABORT, 'an enquiry is an immutable record of what the traveller submitted');
+END;
+
+-- Messages the system would send. No transport exists: delivery can only be 'mock_recorded'.
+-- A real transport would change that CHECK deliberately, in its own migration.
+CREATE TABLE outbox_messages (
+  id               INTEGER PRIMARY KEY,
+  enquiry_id       INTEGER NOT NULL REFERENCES enquiries(id) ON DELETE CASCADE,
+  kind             TEXT NOT NULL,
+  channel          TEXT NOT NULL CHECK (channel IN ('email', 'sms', 'whatsapp')),
+  recipient        TEXT NOT NULL,
+  subject          TEXT,
+  body             TEXT NOT NULL,
+  template_version TEXT NOT NULL,
+  delivery         TEXT NOT NULL DEFAULT 'mock_recorded' CHECK (delivery = 'mock_recorded'),
+  created_at       TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+CREATE UNIQUE INDEX ux_one_acknowledgement_per_enquiry
+  ON outbox_messages(enquiry_id) WHERE kind = 'acknowledgement';
+
+PRAGMA user_version = 2;
