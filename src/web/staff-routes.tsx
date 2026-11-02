@@ -3,6 +3,7 @@ import { bodyLimit } from 'hono/body-limit';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { createMiddleware } from 'hono/factory';
 import { get, type DatabaseSync } from '../db/db.js';
+import { acceptAnalysis, analyseEnquiry, getAnalysis, type ExtractedFields } from '../domain/analysis.js';
 import { emptyPackageForm, formFromBody, formFromVersion, parsePackageForm } from '../domain/package-form.js';
 import { createPackage, DomainError, listPackageHistory, listPackagesForStaff, publish, restoreVersion, saveDraft, type PackageAdminRow } from '../domain/packages.js';
 import { RateLimiter } from '../domain/rate-limit.js';
@@ -42,6 +43,7 @@ export interface StaffRouteOptions {
   /** True when SITE_URL is https: the session cookie is then Secure and uses the __Host- prefix. */
   secureCookies: boolean;
   loginLimits: LoginLimits;
+  geminiApiKey: string | null;
 }
 
 export interface StaffEnv {
@@ -190,7 +192,7 @@ export function registerStaffRoutes(app: Hono, db: DatabaseSync, ctx: PageContex
   const workspaceResponse = (c: Context<StaffEnv>, id: number, status: 200 | ErrorStatus, extra: { problem?: { area: ProblemArea; message: string }; retained?: Retained; saved?: string } = {}) => {
     const ws = getWorkspace(db, id, options.now());
     if (!ws) return message(c, 404, 'Enquiry not found', 'There is no enquiry with that number.', sessionViewer(c), { href: '/staff/inbox', text: 'Back to the inbox' });
-    return page(c, <WorkspacePage ctx={ctx} viewer={sessionViewer(c)} ws={ws} staff={listAssignable(db)} {...extra} />, status);
+    return page(c, <WorkspacePage ctx={ctx} viewer={sessionViewer(c)} ws={ws} staff={listAssignable(db)} analysis={getAnalysis(db, id)} {...extra} />, status);
   };
 
   staff.get('/enquiries/:id', (c) => {
@@ -256,6 +258,42 @@ export function registerStaffRoutes(app: Hono, db: DatabaseSync, ctx: PageContex
       return 'recorded';
     }),
   );
+
+  staff.post('/enquiries/:id/analyse', async (c) => {
+    const raw = c.req.param('id');
+    if (!ID.test(raw)) return workspaceResponse(c, 0, 404);
+    const id = Number(raw);
+    if (!getWorkspace(db, id, options.now())) return workspaceResponse(c, id, 404);
+    try {
+      await analyseEnquiry(db, id, options.geminiApiKey, options.now());
+      return c.redirect(`/staff/enquiries/${id}?done=analysed#analysis`, 303);
+    } catch (err) {
+      if (!(err instanceof DomainError)) throw err;
+      return workspaceResponse(c, id, DOMAIN_STATUS[err.code], { problem: { area: 'analysis', message: err.message } });
+    }
+  });
+  staff.post('/enquiries/:id/analysis/accept', async (c) => {
+    const raw = c.req.param('id');
+    if (!ID.test(raw)) return workspaceResponse(c, 0, 404);
+    const id = Number(raw);
+    const current = getAnalysis(db, id);
+    if (!current) return workspaceResponse(c, id, 404, { problem: { area: 'analysis', message: 'Run analysis first.' } });
+    const body = await c.req.parseBody();
+    const optionalNumber = (key: string): number | null => text(body, key).trim() ? Number(text(body, key)) : null;
+    const fields: ExtractedFields = {
+      date: text(body, 'date').trim() || null, month: optionalNumber('month'), adults: optionalNumber('adults'), children: optionalNumber('children'),
+      destination: text(body, 'destination').trim() || null, budgetInr: optionalNumber('budgetInr'),
+      budgetBasis: text(body, 'budgetBasis') === 'total' || text(body, 'budgetBasis') === 'per_person' ? text(body, 'budgetBasis') as 'total' | 'per_person' : null,
+      mustHave: text(body, 'mustHave').trim() || null, evidence: current.fields.evidence,
+    };
+    try {
+      acceptAnalysis(db, id, c.get('session').user.id, fields, options.now());
+      return c.redirect(`/staff/enquiries/${id}?done=accepted#analysis`, 303);
+    } catch (err) {
+      if (!(err instanceof DomainError)) throw err;
+      return workspaceResponse(c, id, DOMAIN_STATUS[err.code], { problem: { area: 'analysis', message: err.message } });
+    }
+  });
 
   // ---- package CMS (admin only) ------------------------------------------
 

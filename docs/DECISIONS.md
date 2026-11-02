@@ -121,3 +121,10 @@
 - **Consequences:** Sonnet must review Haiku output line by line. The copied project kit differs from the master kit; future installs need the same routing change if this is intended as a standing default.
 - **Decided by:** Human project owner · **Related:** This bootstrap update.
 
+## 2026-11-02 · Package CMS and editable Gemini analysis
+- **Status:** accepted
+- **Context:** The owner requested the full Kochi build, selected Google Gemini API, and then asked for GPT Luna to run only minimal basic tests while the main builder keeps implementing.
+- **Decision:** Admin package edits use existing draft/version transactions, private preview and published-only public reads. The AI call uses server-side `generateContent` with an eight-second timeout. The returned text is validated; prices and three suggestions are computed from published database versions. Invalid, missing or unavailable Gemini output uses a clearly labelled local rules fallback. Extracted details remain a proposal until a consultant corrects and accepts them; a reply still requires explicit approval and enters only the mock outbox. A version 3 database receives an additive version 4 migration, preserving local enquiries and sessions.
+- **Consequences:** The local fallback and approval path have focused tests. The live Gemini API path remains unverified until a private key is supplied in the runtime environment. The suggested reply opening rejects model text containing numbers or money terms; quoted prices always come from package records.
+- **Decided by:** Human owner (provider, test routing), Builder (implementation) · **Related:** `src/domain/analysis.ts`, `src/web/package-cms-pages.tsx`
+

@@ -25,8 +25,8 @@ The owner expanded scope to the full selected brief after S4. Work remains on `f
 | S2 | Screens 1–2 (home/list, package detail), seasonal price display, photos with provenance, sitemap, robots, 404 | this branch |
 | S3 | Screens 3–4 (enquiry form, acknowledgement), consent, honeypot, rate limit, mock outbox, seeded sample enquiry | this branch |
 | S4 | Screens 5–6 (staff login, inbox), sessions, CSRF, role checks | this branch |
-| S5 | AI extraction (live Google Gemini API, labelled rules fallback), ranking, drafting, price guard, screen 7 | planned |
-| S6 | Screen 8 (package editor, optimistic lock, publish, restore, history, preview) | planned |
+| S5 | AI extraction (live Google Gemini API, labelled rules fallback), ranking, drafting, price guard, screen 7 | this branch; live path awaits a private key for verification |
+| S6 | Screen 8 (package editor, optimistic lock, publish, restore, history, preview) | this branch |
 | S7 | Full MUST HAVE depth: destination/search/map, blog CMS, package scheduling/duplication, quote PDF/link, additional enquiry channels and editor role | planned |
 | S8 | States, phone and accessibility pass, performance, screenshots | planned |
 | S9 | TDD, `deployment.md`, DECISIONS, rubric, ZIP | planned |
@@ -91,7 +91,7 @@ setup: `npm ci` · run: `npm run dev` · test: `npm test` · lint: `npm run lint
 - Rate-limit counters are in memory, per process, and reset on restart; behind a reverse proxy set `TRUST_PROXY=1`, otherwise every visitor shares the proxy's address.
 - Not verified in S3: other browsers, a screen reader, real 4G timing, tablet widths.
 - Photographs are Creative Commons images from Wikimedia Commons used as placeholders (credited on each page). Company A must supply licensed photography before launch.
-- The live Gemini path cannot be verified until the human sets `GEMINI_API_KEY` locally and runs the check script (built in S5).
+- The live Gemini path cannot be verified until the human sets `GEMINI_API_KEY` privately. The local fallback and staff approval path have a focused test.
 - `node:sqlite` is experimental; `better-sqlite3` is the fallback behind `src/db/db.ts`.
 - SQLite needs a persistent volume on any deploy target.
 - GitHub URL, deployment target, and exact deadline start time remain to be confirmed.

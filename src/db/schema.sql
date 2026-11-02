@@ -359,4 +359,19 @@ CREATE TABLE staff_sessions (
 CREATE INDEX ix_staff_sessions_user ON staff_sessions(user_id);
 CREATE INDEX ix_staff_sessions_expires ON staff_sessions(expires_at);
 
-PRAGMA user_version = 3;
+-- AI output is a proposal, never a sent message or an overwrite of traveller input.
+-- A consultant may correct the proposal; only that correction is marked accepted.
+CREATE TABLE enquiry_analysis (
+  enquiry_id INTEGER PRIMARY KEY REFERENCES enquiries(id) ON DELETE CASCADE,
+  source TEXT NOT NULL CHECK (source IN ('gemini', 'local_fallback')),
+  status TEXT NOT NULL CHECK (status IN ('proposed', 'accepted')),
+  fields_json TEXT NOT NULL,
+  suggestions_json TEXT NOT NULL,
+  reply_opening TEXT NOT NULL,
+  uncertainty TEXT NOT NULL,
+  analysed_at TEXT NOT NULL,
+  accepted_by INTEGER REFERENCES staff_users(id),
+  accepted_at TEXT
+);
+
+PRAGMA user_version = 4;

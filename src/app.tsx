@@ -24,6 +24,7 @@ export interface AppOptions {
   now?: () => Date;
   limits?: Partial<EnquiryLimits>;
   loginLimits?: Partial<LoginLimits>;
+  geminiApiKey?: string | null;
 }
 
 const PUBLIC_DIR = fileURLToPath(new URL('./public/', import.meta.url));
@@ -91,6 +92,7 @@ export function createApp(db: DatabaseSync, options: AppOptions = {}): Hono {
     trustProxy: options.trustProxy ?? false,
     secureCookies: new URL(ctx.siteUrl).protocol === 'https:',
     loginLimits: { ...DEFAULT_LOGIN_LIMITS, ...options.loginLimits },
+    geminiApiKey: options.geminiApiKey ?? null,
   });
 
   app.get('/assets/:dir/:file', async (c) => {

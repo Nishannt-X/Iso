@@ -1,5 +1,6 @@
 import type { Child } from 'hono/jsx';
 import type { Channel } from '../domain/enquiries.js';
+import { suggestedReply, type Analysis } from '../domain/analysis.js';
 import { SETTABLE_STATUSES, STATUS_LABEL, TRIAGE_LIMITS, type Workspace } from '../domain/triage.js';
 import type { StaffUser } from '../domain/staff.js';
 import { formatInr, formatReceived, pluralise } from './format.js';
@@ -9,7 +10,7 @@ import { CsrfField, partyText, SlaCell, StaffShell, StatusChip, type Viewer } fr
 // The enquiry workspace (screen 7): the immutable original beside the structured fields, handling controls,
 // the mock reply composer, notes and the activity trail. JSX escapes every value, including the traveller's message.
 
-export type ProblemArea = 'status' | 'assign' | 'note' | 'reply';
+export type ProblemArea = 'status' | 'assign' | 'note' | 'reply' | 'analysis';
 export interface Problem {
   area: ProblemArea;
   message: string;
@@ -30,6 +31,7 @@ export interface WorkspaceView {
   /** Confirmation shown after a redirect from a successful change. */
   saved?: string;
   retained?: Retained;
+  analysis: Analysis | null;
 }
 
 /** Keys accepted in the ?done= parameter after a successful change, with the sentence shown for each. */
@@ -40,6 +42,8 @@ export const DONE_TEXT: Record<string, string> = {
   note: 'Note added.',
   draft: 'Draft saved. Nothing has been recorded or sent.',
   recorded: 'Reply approved and recorded in the mock outbox. Nothing was sent to the traveller.',
+  analysed: 'Analysis proposed. Check its evidence and correct it before accepting.',
+  accepted: 'Corrected analysis accepted. The suggested reply is now editable below.',
 };
 
 const CHANNEL_LABEL: Record<Channel, string> = { email: 'Email', sms: 'SMS', whatsapp: 'WhatsApp' };
@@ -145,7 +149,7 @@ function ReplyComposer({ v }: { v: WorkspaceView }) {
   const retained = v.retained?.reply;
   const channel = retained?.channel ?? ws.draft?.channel ?? ws.channels[0]?.channel;
   const subject = retained?.subject ?? ws.draft?.subject ?? `Your enquiry about ${ws.package.title} (${e.reference})`.slice(0, TRIAGE_LIMITS.subject);
-  const body = retained?.body ?? ws.draft?.body ?? '';
+  const body = retained?.body ?? ws.draft?.body ?? (v.analysis?.status === 'accepted' ? suggestedReply(v.analysis) : '');
   const described = v.problem?.area === 'reply' ? 'error-summary' : undefined;
   return (
     <form method="post" action={`/staff/enquiries/${e.id}/reply/record`} class="form compose">
@@ -263,15 +267,31 @@ export function WorkspacePage(v: WorkspaceView) {
             </section>
 
             <section class="panel analysis" id="analysis" aria-labelledby="analysis-title">
-              <h2 id="analysis-title">Analysis <span class="chip">Not analysed yet</span></h2>
-              <p>
-                No automatic extraction or package suggestions have run on this enquiry. Nothing here is guessed: the form fields above
-                are what the traveller entered, and the message is theirs word for word.
-              </p>
-              <p>
-                When analysis is added, dates, travellers, destination and budget it finds will appear here beside the original message
-                for a consultant to correct, and nothing will be sent until a consultant approves it.
-              </p>
+              <h2 id="analysis-title">Analysis <span class="chip">{v.analysis ? v.analysis.status === 'accepted' ? 'Accepted' : 'Needs review' : 'Not analysed'}</span></h2>
+              <p class="hint">The original message is above. Gemini extracts text when configured; local rules are used if it is unavailable. Suggestions and prices come from published packages. Nothing is sent automatically.</p>
+              {v.analysis ? <>
+                <p class="hint">Source: {v.analysis.source === 'gemini' ? 'Google Gemini API' : 'Local rules fallback'} · {formatReceived(v.analysis.analysedAt)}</p>
+                <p role="status">{v.analysis.uncertainty}</p>
+                {v.analysis.fields.evidence.length ? <p class="hint">Evidence from message: {v.analysis.fields.evidence.map((x) => `“${x}”`).join(' · ')}</p> : <p class="hint">No exact phrase was extracted. Check the original message.</p>}
+                <form method="post" action={`/staff/enquiries/${e.id}/analysis/accept`} class="form cms-form">
+                  <CsrfField token={viewer.csrfToken} />
+                  <div class="cms-fields">
+                    <div class="field"><label for="analysis-date">Start date (YYYY-MM-DD)</label><input id="analysis-date" name="date" type="date" value={v.analysis.fields.date ?? ''} /></div>
+                    <div class="field"><label for="analysis-month">Month (1–12)</label><input id="analysis-month" name="month" type="number" min="1" max="12" value={v.analysis.fields.month ?? ''} /></div>
+                    <div class="field"><label for="analysis-adults">Adults</label><input id="analysis-adults" name="adults" type="number" min="1" max="50" value={v.analysis.fields.adults ?? ''} /></div>
+                    <div class="field"><label for="analysis-children">Children</label><input id="analysis-children" name="children" type="number" min="0" max="20" value={v.analysis.fields.children ?? ''} /></div>
+                    <div class="field"><label for="analysis-destination">Destination</label><input id="analysis-destination" name="destination" value={v.analysis.fields.destination ?? ''} maxlength={120} /></div>
+                    <div class="field"><label for="analysis-must">Must have</label><input id="analysis-must" name="mustHave" value={v.analysis.fields.mustHave ?? ''} maxlength={120} /></div>
+                    <div class="field"><label for="analysis-budget">Budget in ₹</label><input id="analysis-budget" name="budgetInr" type="number" min="1000" value={v.analysis.fields.budgetInr ?? ''} /></div>
+                    <div class="field"><label for="analysis-basis">Budget basis</label><select id="analysis-basis" name="budgetBasis"><option value="" selected={!v.analysis.fields.budgetBasis}>Unknown</option><option value="total" selected={v.analysis.fields.budgetBasis === 'total'}>Whole group</option><option value="per_person" selected={v.analysis.fields.budgetBasis === 'per_person'}>Per person</option></select></div>
+                  </div>
+                  <button class="btn secondary" type="submit">Accept corrected details and refresh suggestions</button>
+                </form>
+                <h3>Three package suggestions</h3>
+                <ul class="cms-list">{v.analysis.suggestions.map((s) => <li><div><strong>{s.title}</strong><p>{s.reason}</p><p>{s.pricePpTwinInr === null ? 'Price to confirm' : `${formatInr(s.pricePpTwinInr)} per person, twin sharing · GST to confirm`}</p><small>{s.priceNote}</small></div></li>)}</ul>
+                <h3>Draft reply opening</h3><p>{v.analysis.replyOpening}</p><p class="hint">After accepting the details, edit the full suggestion in the Reply section and approve it there.</p>
+              </> : <p class="muted">No analysis yet. Run it when you are ready to review the proposed details.</p>}
+              <form method="post" action={`/staff/enquiries/${e.id}/analyse`}><CsrfField token={viewer.csrfToken} /><button class="btn secondary" type="submit">{v.analysis ? 'Run analysis again' : 'Analyse enquiry'}</button></form>
             </section>
 
             <section class="panel" aria-labelledby="reply-title">
