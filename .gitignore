@@ -2,3 +2,6 @@
 .env.*
 !.env.example
 CLAUDE.local.md
+.claude/skills/taste/docs/
+.claude/skills/taste/evals/
+.claude/skills/impeccable/scripts/impeccable.cmd
