@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Blocks pushes to protected branches and non-fast-forward (force) updates. Input: lines "<local ref> <local sha> <remote ref> <remote sha>"
+zero=0000000000000000000000000000000000000000
+while read -r lref lsha rref rsha; do
+  case "$rref" in
+    refs/heads/main|refs/heads/master|refs/heads/release/*)
+      echo "pre-push: direct push to ${rref#refs/heads/} is blocked. Open a pull request." >&2; exit 1 ;;
+  esac
+  if [ "$lsha" != "$zero" ] && [ "$rsha" != "$zero" ] && ! git merge-base --is-ancestor "$rsha" "$lsha" 2>/dev/null; then
+    echo "pre-push: non-fast-forward update of ${rref#refs/heads/} (force push) is blocked." >&2; exit 1
+  fi
+done
+exit 0
