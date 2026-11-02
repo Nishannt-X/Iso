@@ -1,5 +1,13 @@
 # Decisions (newest first)
 
+## 2026-11-02 · S2 public site: placeholder photos, self-hosted font, SITE_URL, enquiry placeholder
+- **Status:** accepted
+- **Context:** S2 needs a polished public list and package page with full-width photography, seasonal prices and an Enquire button, before the enquiry form (S3) exists. The brief gives no photographs, hotel names, GST rate or map data.
+- **Options considered:** A) stock photos by URL; B) Creative Commons photos from Wikimedia Commons, resized and committed with provenance; C) grey placeholders; D) a CSS-only or npm font package.
+- **Decision:** B for photos (`src/public/images`, provenance in `src/domain/photos.ts`, credit shown beside each use). Hanken Grotesk woff2 files are committed as assets, not an npm dependency (OFL). The font and photos are served by a small allow-listed route, not a static-file middleware. No new npm dependency was added: `hono/compress`, `hono/secure-headers` and `hono/trailing-slash` ship with the installed Hono. A `SITE_URL` env var (default `http://localhost:$PORT`) feeds canonical links, `sitemap.xml` and `robots.txt`; it is not derived from the Host header. The Enquire button targets `GET /enquire?package=<slug>`, a noindex placeholder that says the form is not live; S3 replaces it. GST is shown as "pending" everywhere; the public site never computes or implies a rate. Hotels are shown as a star category only because no hotel names exist. The map, search, blog and redirects from 140 old URLs are deferred (see `PROJECT_BRIEF.md`).
+- **Consequences:** Company A must supply licensed photos before launch. The photo-to-package mapping lives in code until the package editor (S6). The build script now also copies `src/public` to `dist/public`. Seed summaries keep their `[Synthetic demo content]` marker; pages strip it and show a visible label instead. The 500 test no longer matches the word "select" because the page now carries a stylesheet; it checks for specific internal markers instead.
+- **Decided by:** agent (Builder) · **Related:** S2 commits on `feat/kochi-tours-core`, `docs/DESIGN_DECISIONS.md`
+
 ## 2026-11-02 · Correct seed data to the brief's sample table; add CLIENT_BRIEF.md
 - **Status:** accepted
 - **Context:** Review of S0+S1 found the seed built without the brief's sample table. It invented a ₹24,000 PKG-KL-07 Monsoon price and a ₹41,000, 8-day, 4-star PKG-SI-12, and the docs claimed those brief facts were missing. A second finding: `validateSeasons` compared season names, so two overlapping seasons with the same name passed.

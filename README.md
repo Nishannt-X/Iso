@@ -16,11 +16,15 @@ npm test
 
 `node:sqlite` is experimental in Node 22 and prints a one-line warning; that is expected.
 
+## Routes
+`/` home and package list · `/packages/:slug` package detail · `/enquire` placeholder for the Enquire button (S3 replaces it) · `/sitemap.xml` · `/robots.txt` · `/healthz` · `/assets/*` photos and font. A trailing slash redirects (301) to the clean URL; unknown paths and unpublished packages return a 404 page.
+
 ## Environment variables (names only; set them in your own shell or a git-ignored `.env`)
 | Name | Used | Purpose |
 |---|---|---|
 | `PORT` | now | HTTP port, default 3000 |
 | `DB_PATH` | now | SQLite file, default `data/kochi-tours.db` |
+| `SITE_URL` | now | Public origin for canonical links, `sitemap.xml` and `robots.txt`; default `http://localhost:$PORT` |
 | `ANTHROPIC_API_KEY` | S5 | Live AI extraction. Set privately; never commit or paste it |
 | `AI_PROVIDER` | S5 | `anthropic` (default when a key is set) or `rules` |
 | `AI_MODEL` | S5 | Overrides the default extraction model |
