@@ -28,3 +28,10 @@ Footer on every page; "Synthetic demo package" chip on the five synthetic packag
 
 ## Checked (Playwright, Chromium)
 Desktop 1440×900 and phone 390×844: home, package detail (hero, itinerary, photo band, price table, bottom bar), 404, enquiry placeholder. Defects found and fixed: headline covering the houseboat; three-line hero title over a busy photo; photo credit colliding with hero text on phones; 404 text misaligned with the header; footer floating on short pages. No horizontal scroll at 390px. Impeccable's detector reports no findings for `src/web/*`. Not tested: Safari/Firefox, real 4G, screen reader, tablet widths.
+
+## Enquiry form and acknowledgement (slice S3)
+- **Form:** one reading column (40rem) on the same ground, ink and teal. Three groups (your trip, your details, WhatsApp) with a visible legend, not cards. Labels above fields, hints between label and field, errors under the field in a dark red (about 7:1) with the message text, so colour is never the only signal. Inputs are 48px high and 16px type (no iOS zoom). The one teal button is the only filled element. Native `required` and input types come first; server errors arrive as a focused summary whose links jump to each field.
+- **Consent and privacy:** the WhatsApp checkbox is its own group, unchecked, with the exact wording beside it. The privacy text sits above the button, labelled a draft. A demo notice at the top says not to enter real details.
+- **Acknowledgement:** states the facts (reference, package, time in IST, status) and shows the acknowledgement as a quoted block with its channel and the mock-outbox caveat. It shows no contact details.
+- **Checked (Playwright, Chromium):** 390×844 and 1440×900: the form, the error state (focus lands on the summary, entries kept), and the acknowledgement; no horizontal scroll; all 12 controls have labels. Defects found and fixed: every real browser submit was refused with 403 (`Origin: null` under `Referrer-Policy: no-referrer`), and the budget input and select sat at different heights on desktop. Not tested: Safari/Firefox, screen reader, tablet widths, the 429 and 500 pages in a browser (covered by HTTP tests).
+

@@ -23,7 +23,7 @@ The core slice, delivered in slices on one branch (`feat/kochi-tours-core`). Sta
 | S0 | Scope docs, scaffold, `node:sqlite` spike, thin `GET /` | this branch |
 | S1 | Schema, triggers, versioned catalogue, seasonal pricing, seed | this branch |
 | S2 | Screens 1–2 (home/list, package detail), seasonal price display, photos with provenance, sitemap, robots, 404 | this branch |
-| S3 | Screens 3–4 (enquiry form, acknowledgement), consent, honeypot, rate limit | planned |
+| S3 | Screens 3–4 (enquiry form, acknowledgement), consent, honeypot, rate limit, mock outbox, seeded sample enquiry | this branch |
 | S4 | Screens 5–6 (staff login, inbox), sessions, CSRF, role checks | planned |
 | S5 | AI extraction (live Anthropic primary, labelled rules fallback), ranking, drafting, price guard, screen 7 | planned |
 | S6 | Screen 8 (package editor, optimistic lock, publish, restore, history, preview) | planned |
@@ -58,6 +58,11 @@ The brief is in [`docs/CLIENT_BRIEF.md`](CLIENT_BRIEF.md). Everything in this ta
 | A10 | The sample table (A1) is from the brief. `nights` (= days − 1), region labels, all itinerary, summary, inclusion and tag text, and the five `SYN-*` packages are **assumed or synthetic**. Seed rows record this in `packages.data_origin` and `change_note`. |
 | A11 | The slug is editable until a package's first publish, then locked. This replaces a redirect engine. |
 | A12 | All sample data is synthetic. No real personal data is stored or committed. |
+| A13 | **Enquiry form fields (S3).** The brief names dates, travellers, destination, budget, a message and contact, but not which are required. Required here: name, adults, children, and an email or a phone. Everything else is optional. Limits (50 adults, 20 children, ₹1,000 to ₹99.9 crore, 2,000 characters, a start date within two years) are abuse bounds. The form is reached only from a live package's Enquire button; there is no general enquiry page. |
+| A14 | **Acknowledgement.** The brief says a fixed template. This build's text has no name, price, date or reply-time promise (the brief gives no working hours). The channel is email if given, else WhatsApp only with consent, else SMS. Nothing is sent; messages are recorded in a mock outbox and the status page says so. |
+| A15 | **Privacy and consent text is a draft** written by this build. The brief says traveller data is personal data under the DPDP Act 2023 and WhatsApp follow-ups need consent, and gives no wording, retention period or contact. Company A must supply or approve them. |
+| A16 | **Sample enquiry.** The brief's message is seeded verbatim against PKG-KL-07. The name and `.invalid` email are synthetic. Only adults (2) and children (1), which the form requires, are structured; its budget, destination and "December" are not turned into fields. |
+| A17 | **Spam limits** (20 attempts per 10 minutes, 5 enquiries per hour per client, 300 per hour overall) and the 10-minute duplicate window are this build's choices, not the brief's. |
 
 ## Stack & constraints
 - Language / framework / runtime: TypeScript on Node 22 (`>=22.13`), Hono with JSX server rendering, SQLite via the built-in `node:sqlite` (experimental in Node 22), `node:test`.
@@ -70,7 +75,7 @@ The brief is in [`docs/CLIENT_BRIEF.md`](CLIENT_BRIEF.md). Everything in this ta
 setup: `npm ci` · run: `npm run dev` · test: `npm test` · lint: `npm run lint` · typecheck: `npm run typecheck` · build: `npm run build` · reset local DB: `npm run db:reset`
 
 ## Architecture sketch (short)
-`src/db` (schema, connection, seed) → `src/domain` (seasons, pricing, package versions) → `src/app.tsx` (Hono routes, server-rendered). The database enforces the version invariants with partial unique indexes and triggers; the domain layer adds validation (`PublishableVersion`), optimistic locking (`lock_version`) and transactions. Pricing is computed server-side only.
+`src/db` (schema, connection, seed) → `src/domain` (seasons, pricing, package versions, enquiries, notices, rate limiter) → `src/app.tsx` and `src/web/enquiry-routes.tsx` (Hono routes, server-rendered). An enquiry is an immutable row; S4 workflow state and S5 AI output will live in their own tables. The database enforces the version invariants with partial unique indexes and triggers; the domain layer adds validation (`PublishableVersion`), optimistic locking (`lock_version`) and transactions. Pricing is computed server-side only.
 
 ## Milestones
 | # | Milestone | Done when |
@@ -80,6 +85,9 @@ setup: `npm ci` · run: `npm run dev` · test: `npm test` · lint: `npm run lint
 | 3 | Package submission | TDD and `deployment.md` are verified inside one ZIP (S8). |
 
 ## Risks & open questions
+- The privacy and WhatsApp consent text is a draft (A15). The public site must not launch with it unreviewed. When S5 sends enquiry text to a live AI provider, the notice must say so.
+- Rate-limit counters are in memory, per process, and reset on restart; behind a reverse proxy set `TRUST_PROXY=1`, otherwise every visitor shares the proxy's address.
+- Not verified in S3: other browsers, a screen reader, real 4G timing, tablet widths.
 - Photographs are Creative Commons images from Wikimedia Commons used as placeholders (credited on each page). Company A must supply licensed photography before launch.
 - The live Anthropic path cannot be verified until the human sets `ANTHROPIC_API_KEY` locally and runs the check script (built in S5).
 - `node:sqlite` is experimental; `better-sqlite3` is the fallback behind `src/db/db.ts`.
