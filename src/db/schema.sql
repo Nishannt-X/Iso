@@ -267,17 +267,79 @@ END;
 CREATE TABLE outbox_messages (
   id               INTEGER PRIMARY KEY,
   enquiry_id       INTEGER NOT NULL REFERENCES enquiries(id) ON DELETE CASCADE,
-  kind             TEXT NOT NULL,
+  -- 'acknowledgement' is the automatic fixed template. 'staff_reply' is a reply a named staff member approved (S4).
+  kind             TEXT NOT NULL CHECK (kind IN ('acknowledgement', 'staff_reply')),
   channel          TEXT NOT NULL CHECK (channel IN ('email', 'sms', 'whatsapp')),
   recipient        TEXT NOT NULL,
   subject          TEXT,
   body             TEXT NOT NULL,
   template_version TEXT NOT NULL,
   delivery         TEXT NOT NULL DEFAULT 'mock_recorded' CHECK (delivery = 'mock_recorded'),
-  created_at       TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+  -- The staff member who approved a reply. Required for staff replies, empty for automatic acknowledgements.
+  approved_by      INTEGER REFERENCES staff_users(id),
+  created_at       TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  CHECK ((kind = 'staff_reply') = (approved_by IS NOT NULL))
 );
 CREATE UNIQUE INDEX ux_one_acknowledgement_per_enquiry
   ON outbox_messages(enquiry_id) WHERE kind = 'acknowledgement';
+CREATE INDEX ix_outbox_enquiry ON outbox_messages(enquiry_id, kind, created_at);
+
+-- A recorded message is history: it is never edited. (Deleting an enquiry still removes its messages.)
+CREATE TRIGGER trg_outbox_immutable
+BEFORE UPDATE ON outbox_messages
+BEGIN
+  SELECT RAISE(ABORT, 'a recorded message cannot be changed');
+END;
+
+-- ---------------------------------------------------------------------------
+-- S4: triage workflow. Staff state about an enquiry lives here, never in `enquiries`, which stays
+-- exactly what the traveller sent. S5 adds its AI extraction tables beside these.
+-- ---------------------------------------------------------------------------
+
+-- Exactly one row per enquiry, created by trigger so no insert path can forget it.
+-- replied is reached only by recording a reply; staff choose among new, in_progress and closed.
+-- lock_version is an optimistic lock: a form carries the version it was drawn from, and a stale save is refused.
+CREATE TABLE enquiry_workflow (
+  enquiry_id   INTEGER PRIMARY KEY REFERENCES enquiries(id) ON DELETE CASCADE,
+  status       TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'in_progress', 'replied', 'closed')),
+  assignee_id  INTEGER REFERENCES staff_users(id),
+  lock_version INTEGER NOT NULL DEFAULT 1,
+  updated_at   TEXT NOT NULL
+);
+CREATE INDEX ix_workflow_status ON enquiry_workflow(status, assignee_id);
+
+CREATE TRIGGER trg_enquiries_workflow
+AFTER INSERT ON enquiries
+BEGIN
+  INSERT INTO enquiry_workflow (enquiry_id, updated_at) VALUES (NEW.id, NEW.created_at);
+END;
+
+-- Internal notes: staff only, append-only.
+CREATE TABLE enquiry_notes (
+  id         INTEGER PRIMARY KEY,
+  enquiry_id INTEGER NOT NULL REFERENCES enquiries(id) ON DELETE CASCADE,
+  author_id  INTEGER NOT NULL REFERENCES staff_users(id),
+  body       TEXT NOT NULL CHECK (length(body) BETWEEN 1 AND 2000),
+  created_at TEXT NOT NULL
+);
+CREATE INDEX ix_notes_enquiry ON enquiry_notes(enquiry_id, id);
+
+CREATE TRIGGER trg_notes_immutable
+BEFORE UPDATE ON enquiry_notes
+BEGIN
+  SELECT RAISE(ABORT, 'a note cannot be edited');
+END;
+
+-- The one working reply draft per enquiry. Nothing leaves the system from here: a draft becomes a message
+-- only when a staff member approves it, which writes an outbox_messages row (kind 'staff_reply') and deletes the draft.
+CREATE TABLE reply_drafts (
+  enquiry_id INTEGER PRIMARY KEY REFERENCES enquiries(id) ON DELETE CASCADE,
+  channel    TEXT NOT NULL CHECK (channel IN ('email', 'sms', 'whatsapp')),
+  subject    TEXT CHECK (subject IS NULL OR length(subject) <= 200),
+  body       TEXT NOT NULL CHECK (length(body) BETWEEN 1 AND 4000),
+  updated_by INTEGER NOT NULL REFERENCES staff_users(id),
+  updated_at TEXT NOT NULL
+);
 
 -- ---------------------------------------------------------------------------
 -- S4: staff sessions.

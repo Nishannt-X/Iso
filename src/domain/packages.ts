@@ -52,7 +52,7 @@ export interface PackageVersion extends VersionContent {
   restoredFromVersionId: number | null;
 }
 
-export type DomainErrorCode = 'conflict' | 'validation' | 'not_found' | 'draft_exists' | 'slug_locked' | 'invalid_state';
+export type DomainErrorCode = 'conflict' | 'validation' | 'not_found' | 'draft_exists' | 'slug_locked' | 'invalid_state' | 'forbidden';
 
 export class DomainError extends Error {
   constructor(
