@@ -1,7 +1,8 @@
 import { existsSync, mkdirSync, rmSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { createEnquiry } from '../domain/enquiries.js';
 import { createPackage, publish, SYNTHETIC_MARKER, type DataOrigin, type VersionContent } from '../domain/packages.js';
-import { initSchema, isInitialised, openDb, run, type DatabaseSync } from './db.js';
+import { get, initSchema, isInitialised, openDb, run, type DatabaseSync } from './db.js';
 import type { Season } from '../domain/seasons.js';
 
 // Demo data. Facts from the client brief (docs/CLIENT_BRIEF.md, sample table):
@@ -182,7 +183,33 @@ export function seedDatabase(db: DatabaseSync): { packages: number; published: n
       published++;
     }
   }
+  seedSampleEnquiry(db);
   return { packages: SEED_PACKAGES.length, published };
+}
+
+/**
+ * The brief's sample enquiry, verbatim, as if sent from the PKG-KL-07 form. ASSUMED by this build: the traveller's
+ * name and contact (synthetic, on the reserved .invalid domain), and that only the fields the form requires
+ * (adults, children) were filled in. Destination, budget and dates are left blank because the message holds them,
+ * so the later AI extraction has something to extract. No budget figure or date is invented from the message.
+ */
+const SAMPLE_ENQUIRY_MESSAGE = 'Hi, 2 adults and 1 kid, Kerala 5-6 nights in December, budget around 1.2 lakh total, houseboat a must';
+
+function seedSampleEnquiry(db: DatabaseSync): void {
+  const live = get<{ id: number }>(
+    db, "SELECT v.id FROM live_versions v JOIN packages p ON p.id = v.package_id WHERE p.code = 'PKG-KL-07'",
+  );
+  if (!live) return;
+  createEnquiry(db, {
+    versionId: live.id,
+    submissionKey: 'seed-sample-brief-enquiry-1',
+    origin: 'seed_sample',
+    input: {
+      name: 'Sample Traveller (synthetic)', email: 'sample.traveller@example.invalid', phone: null, travelStart: null,
+      adults: 2, children: 1, childAges: [], destination: null, budgetInr: null, budgetBasis: null,
+      message: SAMPLE_ENQUIRY_MESSAGE, whatsappConsent: false,
+    },
+  });
 }
 
 function isAppDatabase(path: string): boolean {

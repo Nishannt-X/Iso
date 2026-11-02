@@ -26,6 +26,7 @@ const count = (db: DatabaseSync, table: string): number => get<{ n: number }>(db
 
 function setup() {
   const db = resetDatabase(':memory:');
+  db.exec('DELETE FROM enquiries'); // the seed's sample enquiry would shift every count below
   const version = getLiveVersionBySlug(db, KL07_SLUG)!;
   return { db, versionId: version.id };
 }
