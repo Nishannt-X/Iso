@@ -5,7 +5,7 @@ import {
 } from '../../src/domain/seasons.js';
 
 const peak: Season = { name: 'Peak', startMd: '10-01', endMd: '03-31', pricePpTwinInr: 32500, rangeAssumed: true };
-const monsoon: Season = { name: 'Monsoon', startMd: '06-01', endMd: '09-30', pricePpTwinInr: 24000, rangeAssumed: true };
+const monsoon: Season = { name: 'Monsoon', startMd: '06-01', endMd: '09-30', pricePpTwinInr: 24900, rangeAssumed: true };
 const assumed = [peak, monsoon];
 
 describe('mdOrdinal / isoOrdinal', () => {

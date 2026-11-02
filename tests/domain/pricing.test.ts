@@ -6,7 +6,7 @@ import type { Season } from '../../src/domain/seasons.js';
 import { freshDb } from '../helpers.js';
 
 const peak: Season = { name: 'Peak', startMd: '10-01', endMd: '03-31', pricePpTwinInr: 32500, rangeAssumed: true };
-const monsoon: Season = { name: 'Monsoon', startMd: '06-01', endMd: '09-30', pricePpTwinInr: 24000, rangeAssumed: true };
+const monsoon: Season = { name: 'Monsoon', startMd: '06-01', endMd: '09-30', pricePpTwinInr: 24900, rangeAssumed: true };
 const kl07: PricingVersion = { days: 6, seasons: [peak, monsoon], childPct: null, singleSuppInr: null };
 
 describe('sample enquiry: 2 adults + 1 child, December, no child rule', () => {
@@ -109,7 +109,7 @@ describe('season outcomes', () => {
     assert.equal(q.season_name, null);
   });
   test('single all-year season (PKG-SI-12 style) prices any month', () => {
-    const allYear: PricingVersion = { days: 8, seasons: [{ name: 'All year (season not specified)', startMd: '01-01', endMd: '12-31', pricePpTwinInr: 41000, rangeAssumed: true }], childPct: null, singleSuppInr: null };
+    const allYear: PricingVersion = { days: 5, seasons: [{ name: 'All year', startMd: '01-01', endMd: '12-31', pricePpTwinInr: 18750, rangeAssumed: false }], childPct: null, singleSuppInr: null };
     for (const month of [1, 4, 5, 12]) assert.equal(quote(allYear, { when: { month }, adults: 2, children: [] }).status, 'complete');
   });
 });

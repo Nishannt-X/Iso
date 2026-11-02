@@ -13,12 +13,17 @@ describe('seed data', () => {
   const live = listLiveVersions(db);
   const byCode = (code: string) => live.find((v) => v.packageCode === code);
 
-  test('PKG-KL-07 is live with an ASSUMED Peak/Monsoon pair and the brief peak price', () => {
+  test('PKG-KL-07 matches the brief sample row: title, 6 days, 4-star, Peak 32,500 and Monsoon 24,900', () => {
     const v = byCode('PKG-KL-07');
     assert.ok(v);
+    assert.equal(v.title, 'Munnar, Thekkady and Alleppey houseboat');
     assert.equal(v.days, 6);
-    assert.deepEqual(v.seasons.map((s) => [s.name, s.startMd, s.endMd, s.rangeAssumed]), [['Peak', '10-01', '03-31', true], ['Monsoon', '06-01', '09-30', true]]);
-    assert.equal(v.seasons[0].pricePpTwinInr, 32500);
+    assert.equal(v.starRating, 4);
+    // Months are from the brief; the day boundaries (10-01, 03-31, 06-01, 09-30) are assumed, hence rangeAssumed.
+    assert.deepEqual(
+      v.seasons.map((s) => [s.name, s.startMd, s.endMd, s.pricePpTwinInr, s.rangeAssumed]),
+      [['Peak', '10-01', '03-31', 32500, true], ['Monsoon', '06-01', '09-30', 24900, true]],
+    );
     assert.ok(v.tags.includes('houseboat'));
   });
 
@@ -29,9 +34,11 @@ describe('seed data', () => {
     assert.equal(get<{ n: number }>(db, "SELECT COUNT(*) AS n FROM live_versions v JOIN packages p ON p.id = v.package_id WHERE p.code = 'PKG-SI-12'")?.n, 0);
   });
 
-  test('PKG-SI-12 has a single all-year season labelled as unspecified', () => {
-    const seasons = all<{ name: string; start_md: string; end_md: string }>(db, "SELECT s.* FROM package_version_seasons s JOIN package_versions v ON v.id = s.version_id JOIN packages p ON p.id = v.package_id WHERE p.code = 'PKG-SI-12'");
-    assert.deepEqual(seasons.map((s) => [s.name, s.start_md, s.end_md]), [['All year (season not specified)', '01-01', '12-31']]);
+  test('PKG-SI-12 matches the brief sample row: title, 5 days, 3-star, All year at 18,750', () => {
+    const v = get<{ title: string; days: number; star_rating: number }>(db, "SELECT v.title, v.days, v.star_rating FROM package_versions v JOIN packages p ON p.id = v.package_id WHERE p.code = 'PKG-SI-12'");
+    assert.deepEqual(v && [v.title, v.days, v.star_rating], ['Madurai, Rameswaram and Kanyakumari', 5, 3]);
+    const seasons = all<{ name: string; start_md: string; end_md: string; price_pp_twin_inr: number; range_assumed: number }>(db, "SELECT s.* FROM package_version_seasons s JOIN package_versions v ON v.id = s.version_id JOIN packages p ON p.id = v.package_id WHERE p.code = 'PKG-SI-12'");
+    assert.deepEqual(seasons.map((s) => [s.name, s.start_md, s.end_md, s.price_pp_twin_inr, s.range_assumed]), [['All year', '01-01', '12-31', 18750, 0]]);
   });
 
   test('five synthetic packages are live and the synthetic/brief split is recorded', () => {
@@ -51,6 +58,12 @@ describe('seed data', () => {
     assert.equal(q.status, 'partial');
     assert.equal(q.subtotal_inr, 65000);
     assert.deepEqual(q.unpriced.map((u) => u.reason), ['child_rule_missing']);
+  });
+
+  test('PKG-KL-07 July (Monsoon) prices two adults at 2 x 24,900', () => {
+    const q = quote(byCode('PKG-KL-07')!, { when: { month: 7 }, adults: 2, children: [] });
+    assert.equal(q.status, 'complete');
+    assert.equal(q.subtotal_inr, 49800);
   });
 
   test('exactly one package has no season for December', () => {

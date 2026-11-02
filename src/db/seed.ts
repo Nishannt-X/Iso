@@ -4,14 +4,18 @@ import { createPackage, publish, type DataOrigin, type VersionContent } from '..
 import { initSchema, isInitialised, openDb, run, type DatabaseSync } from './db.js';
 import type { Season } from '../domain/seasons.js';
 
-// Demo data. Facts from the client brief: PKG-KL-07 exists and its peak price is Rs 32,500 per person
-// (twin share); PKG-SI-12 exists, has one price and no season data. EVERYTHING ELSE is synthetic:
-// itineraries, inclusions, tags, the other five packages, and the two prices marked PLACEHOLDER below.
+// Demo data. Facts from the client brief (docs/CLIENT_BRIEF.md, sample table):
+//   PKG-KL-07 'Munnar, Thekkady and Alleppey houseboat', 6 days, 4-star, published;
+//     Peak (Oct-Mar) Rs 32,500 and Monsoon (Jun-Sep) Rs 24,900 per person.
+//   PKG-SI-12 'Madurai, Rameswaram and Kanyakumari', 5 days, 3-star, All year, Rs 18,750 per person, DRAFT.
+// ASSUMED by this build, not brief facts: the exact day boundaries inside the brief's month ranges (Oct 1,
+// Mar 31, Jun 1, Sep 30; rangeAssumed = true), nights = days - 1, and the region labels.
+// SYNTHETIC: itineraries, inclusions, tags, summaries and the five SYN-* packages.
 // child_pct, single_supp_inr and gst_rate_bp are deliberately left unset: the brief gives no such rule.
 
-const KL07_PEAK_INR = 32500; // from the brief
-const KL07_MONSOON_INR = 24000; // PLACEHOLDER: not in the material available to the builder; replace with the brief value
-const SI12_PRICE_INR = 41000; // PLACEHOLDER: the brief says there is one price; its value was not available
+const KL07_PEAK_INR = 32500;
+const KL07_MONSOON_INR = 24900;
+const SI12_PRICE_INR = 18750;
 
 const PEAK = (price: number): Season => ({ name: 'Peak', startMd: '10-01', endMd: '03-31', pricePpTwinInr: price, rangeAssumed: true });
 const MONSOON = (price: number): Season => ({ name: 'Monsoon', startMd: '06-01', endMd: '09-30', pricePpTwinInr: price, rangeAssumed: true });
@@ -52,17 +56,17 @@ interface SeedPackage {
   content: VersionContent;
 }
 
-const BRIEF_NOTE = 'Seed: package code and listed price are from the client brief; itinerary, inclusions and tags are synthetic placeholders.';
+const BRIEF_NOTE = 'Seed: code, title, duration, star rating, season months and listed prices are from the client brief; day boundaries and nights are assumed; itinerary, inclusions and tags are synthetic placeholders.';
 const SYNTH_NOTE = 'Seed: synthetic demo package.';
 
 const SEED_PACKAGES: SeedPackage[] = [
   {
-    code: 'PKG-KL-07', slug: 'kerala-backwaters-and-hills-6-days', dataOrigin: 'brief', publish: true,
-    note: `${BRIEF_NOTE} Monsoon price is a placeholder.`,
+    code: 'PKG-KL-07', slug: 'munnar-thekkady-and-alleppey-houseboat-6-days', dataOrigin: 'brief', publish: true,
+    note: BRIEF_NOTE,
     content: pkg({
-      title: 'Kerala Backwaters & Hills', nights: 5, region: 'Kerala', starRating: 4,
+      title: 'Munnar, Thekkady and Alleppey houseboat', nights: 5, region: 'Kerala', starRating: 4,
       summary: 'Six days from Kochi through the tea hills of Munnar and the wildlife of Thekkady to a night on a houseboat in the Alleppey backwaters.',
-      destinations: ['Kochi', 'Munnar', 'Thekkady', 'Alleppey'], tags: ['houseboat', 'backwaters', 'hills', 'family'],
+      destinations: ['Munnar', 'Thekkady', 'Alleppey'], tags: ['houseboat', 'backwaters', 'hills', 'family'],
       seasons: [PEAK(KL07_PEAK_INR), MONSOON(KL07_MONSOON_INR)],
       inclusions: ['Accommodation on twin sharing', 'Daily breakfast', 'One night on a houseboat with meals', 'Private vehicle for transfers and sightseeing'],
       stops: [
@@ -76,18 +80,17 @@ const SEED_PACKAGES: SeedPackage[] = [
     }),
   },
   {
-    code: 'PKG-SI-12', slug: 'south-india-circuit-8-days', dataOrigin: 'brief', publish: false,
-    note: `${BRIEF_NOTE} The price is a placeholder; the brief gives no season data. Kept as a draft.`,
+    code: 'PKG-SI-12', slug: 'madurai-rameswaram-and-kanyakumari-5-days', dataOrigin: 'brief', publish: false,
+    note: `${BRIEF_NOTE} DRAFT in the brief, so it is kept unpublished.`,
     content: pkg({
-      title: 'South India Circuit', nights: 7, region: 'South India', starRating: 4,
-      summary: 'Eight days linking Kochi, Madurai and Kanyakumari.',
-      destinations: ['Kochi', 'Madurai', 'Kanyakumari'], tags: ['temples', 'culture'],
-      seasons: [{ name: 'All year (season not specified)', startMd: '01-01', endMd: '12-31', pricePpTwinInr: SI12_PRICE_INR, rangeAssumed: true }],
+      title: 'Madurai, Rameswaram and Kanyakumari', nights: 4, region: 'South India', starRating: 3,
+      summary: 'Five days linking the temple towns of Madurai and Rameswaram with the southern tip at Kanyakumari.',
+      destinations: ['Madurai', 'Rameswaram', 'Kanyakumari'], tags: ['temples', 'culture'],
+      seasons: [{ name: 'All year', startMd: '01-01', endMd: '12-31', pricePpTwinInr: SI12_PRICE_INR, rangeAssumed: false }],
       stops: [
-        ['Arrive in Kochi', 'Airport pickup and rest.'], ['Kochi sightseeing', 'Fort Kochi and Mattancherry.'],
-        ['Kochi to Madurai', 'Long scenic drive.'], ['Madurai', 'Meenakshi temple visit.'],
-        ['Madurai to Rameswaram', 'Temple town and sea bridge.'], ['Rameswaram to Kanyakumari', 'Coastal drive.'],
-        ['Kanyakumari', 'Sunrise point and Vivekananda Rock.'], ['Departure', 'Transfer to Trivandrum airport.'],
+        ['Arrive in Madurai', 'Airport pickup and an evening at the Meenakshi temple.'], ['Madurai', 'Temple and market visits.'],
+        ['Madurai to Rameswaram', 'Temple town and the sea bridge.'], ['Rameswaram to Kanyakumari', 'Coastal drive.'],
+        ['Kanyakumari', 'Sunrise point and Vivekananda Rock, then departure.'],
       ],
     }),
   },

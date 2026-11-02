@@ -17,8 +17,8 @@ function Home({ packages }: { packages: PackageVersion[] }) {
         <main>
           <h1>Kochi Tours</h1>
           <p>
-            Early build: a plain list of published packages. All packages shown are synthetic demo data, and
-            prices are not displayed yet.
+            Early build: a plain list of published packages. PKG-KL-07 carries facts from the client brief; the
+            rest, including all itinerary text, is synthetic demo data. Prices are not displayed yet.
           </p>
           {packages.length === 0 ? (
             <p>No packages are published yet.</p>

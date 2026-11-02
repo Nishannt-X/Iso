@@ -17,7 +17,7 @@ function content(over: Partial<VersionContent> = {}): VersionContent {
     inclusions: ['Breakfast'], exclusions: ['Flights'], destinations: ['Kochi', 'Munnar'], tags: ['houseboat', 'family'],
     seasons: [
       { name: 'Peak', startMd: '10-01', endMd: '03-31', pricePpTwinInr: 32500, rangeAssumed: true },
-      { name: 'Monsoon', startMd: '06-01', endMd: '09-30', pricePpTwinInr: 24000, rangeAssumed: true },
+      { name: 'Monsoon', startMd: '06-01', endMd: '09-30', pricePpTwinInr: 24900, rangeAssumed: true },
     ],
     ...over,
   };
@@ -217,7 +217,7 @@ describe('restoreVersion (I7)', () => {
     });
     const live = listLiveVersions(db)[0];
     assert.equal(live.id, versionId);
-    assert.deepEqual(live.seasons.map((s) => s.pricePpTwinInr), [32500, 24000]);
+    assert.deepEqual(live.seasons.map((s) => s.pricePpTwinInr), [32500, 24900]);
     assert.deepEqual(live.tags, ['family', 'houseboat']);
   });
 

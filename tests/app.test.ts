@@ -15,9 +15,9 @@ describe('GET /', () => {
     const body = await res.text();
     assert.ok(body.startsWith('<!DOCTYPE html>'));
     assert.ok(body.includes('PKG-KL-07'));
-    assert.ok(body.includes('Kerala Backwaters &amp; Hills'));
+    assert.ok(body.includes('Munnar, Thekkady and Alleppey houseboat'));
     assert.ok(!body.includes('PKG-SI-12'));
-    assert.ok(!body.includes('South India Circuit'));
+    assert.ok(!body.includes('Madurai, Rameswaram and Kanyakumari'));
   });
 
   test('says the data is synthetic and shows no prices', async () => {
