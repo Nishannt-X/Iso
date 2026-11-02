@@ -4,6 +4,8 @@ export interface Config {
   dbPath: string;
   /** Absolute origin for canonical links, sitemap and robots.txt. */
   siteUrl: string;
+  /** True only when exactly one trusted reverse proxy sets X-Forwarded-For. Used to find the client for rate limits. */
+  trustProxy: boolean;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -21,5 +23,5 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (!parsed || !/^https?:$/.test(parsed.protocol) || parsed.pathname !== '/') {
     throw new Error(`SITE_URL must be an http(s) origin such as https://example.com, got "${env.SITE_URL}"`);
   }
-  return { port, dbPath: env.DB_PATH || 'data/kochi-tours.db', siteUrl };
+  return { port, dbPath: env.DB_PATH || 'data/kochi-tours.db', siteUrl, trustProxy: env.TRUST_PROXY === '1' };
 }

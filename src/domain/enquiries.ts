@@ -220,6 +220,8 @@ export interface CreateEnquiryArgs {
   submissionKey: string;
   origin?: 'web_form' | 'seed_sample';
   now?: Date;
+  /** Called after the duplicate checks and just before the insert; throw to stop a new enquiry (e.g. a rate limit). */
+  beforeInsert?: () => void;
 }
 
 export interface CreatedEnquiry {
@@ -252,6 +254,8 @@ export function createEnquiry(db: DatabaseSync, args: CreateEnquiryArgs): Create
       db, 'SELECT public_token, reference FROM enquiries WHERE dedupe_hash = ? AND created_at >= ? ORDER BY id LIMIT 1', dedupeHash, since,
     );
     if (sameContent) return { token: sameContent.public_token, reference: sameContent.reference, outcome: 'same_content' as const };
+
+    args.beforeInsert?.();
 
     let reference = randomReference();
     for (let i = 0; i < 5 && get(db, 'SELECT 1 FROM enquiries WHERE reference = ?', reference); i++) reference = randomReference();

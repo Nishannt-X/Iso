@@ -162,5 +162,57 @@ figcaption.credit-below a{color:inherit}
 .site-foot p+p{margin-top:.6rem}
 @media(max-width:61.99rem){.has-book .site-foot{padding-bottom:7.5rem}}
 
+/* enquiry form and acknowledgement */
+.enquiry{max-width:40rem;padding-block:clamp(2.5rem,7vw,5rem) clamp(3rem,8vw,6rem)}
+.enquiry h1{font-size:clamp(2rem,4.2vw,3rem)}
+.enquiry .crumb{font-size:.9375rem;margin-bottom:1.5rem}
+.enquiry .facts{margin-top:.75rem}
+.enquiry .price{margin-top:.75rem}
+.enquiry .lead-in{margin-top:1rem;font-size:1.1875rem;line-height:1.5}
+.demo-note{margin-top:1.25rem;padding:.75rem 1rem;border-left:3px solid var(--teal);background:var(--surface);color:var(--muted);font-size:.9375rem}
+.error-summary{--err:#a31d1d;margin-top:1.75rem;padding:1rem 1.25rem;border:2px solid var(--err);background:var(--surface)}
+.error-summary:focus{outline:2px solid var(--err);outline-offset:2px}
+.error-summary h2{font-size:1.125rem;font-weight:500;letter-spacing:0;color:var(--err)}
+.error-summary p{margin-top:.5rem}
+.error-summary ul{margin-top:.5rem;list-style:disc;padding-left:1.25rem}
+.error-summary li{padding-block:.15rem}
+.error-summary a{color:var(--err)}
+.form{margin-top:2rem}
+.form fieldset{border:0;border-top:1px solid var(--line);margin:0 0 2rem;padding:1.5rem 0 0;min-width:0}
+.form legend{font-size:1.375rem;font-weight:300;letter-spacing:-.02em;padding:0;float:left;width:100%;margin-bottom:1.25rem}
+.form legend+*{clear:both}
+.field{margin-bottom:1.25rem}
+.field label,.check label{font-weight:500;font-size:1rem;display:block}
+.field .opt{font-weight:400;color:var(--muted)}
+.hint{color:var(--muted);font-size:.9375rem;margin-top:.15rem}
+.field input,.field select,.field textarea{display:block;width:100%;margin-top:.4rem;min-height:3rem;padding:.65rem .8rem;font:400 1rem/1.4 "Hanken Grotesk",system-ui,sans-serif;
+  color:var(--ink);background:var(--surface);border:1px solid #6b7a76;border-radius:.25rem;appearance:none}
+.field select{background-image:linear-gradient(45deg,transparent 50%,var(--ink) 50%),linear-gradient(135deg,var(--ink) 50%,transparent 50%);background-position:calc(100% - 1.1rem) 52%,calc(100% - .8rem) 52%;background-size:.3rem .3rem;background-repeat:no-repeat;padding-right:2.25rem}
+.field textarea{min-height:8rem;resize:vertical}
+.field input:focus-visible,.field select:focus-visible,.field textarea:focus-visible{outline:2px solid var(--teal);outline-offset:1px;border-color:var(--teal)}
+.field [aria-invalid=true]{border:2px solid #a31d1d}
+.error{color:#a31d1d;font-size:.9375rem;margin-top:.4rem;font-weight:500}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:0 1rem}
+@media(min-width:34rem){.budget{grid-template-columns:3fr 2fr}}
+@media(max-width:33.99rem){.budget{grid-template-columns:1fr}}
+.consent{border-top:1px solid var(--line)}
+.check{display:grid;grid-template-columns:1.5rem 1fr;gap:.75rem;align-items:start}
+.check input{width:1.5rem;height:1.5rem;margin:.1rem 0 0;accent-color:var(--teal)}
+.check label{font-weight:400}
+.check:has(input:focus-visible){outline:2px solid var(--teal);outline-offset:4px;border-radius:2px}
+.check input:focus-visible{outline:0}
+.privacy{margin-bottom:1.75rem;padding:1rem 1.25rem;border:1px solid var(--line);background:var(--surface);font-size:.9375rem}
+.privacy h2{font-size:1.0625rem;font-weight:500;letter-spacing:0;margin-bottom:.5rem}
+.privacy p+p{margin-top:.5rem}
+.privacy .fineprint{margin-top:.75rem}
+.form .btn{width:100%}
+@media(min-width:34rem){.form .btn{width:auto;min-width:14rem}}
+.hp{position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden}
+.enquiry .sub{font-size:1.375rem;margin:2.5rem 0 1rem}
+.ack{margin:0;padding:1.25rem;border:1px solid var(--line);background:var(--surface)}
+.ack blockquote{margin:0}
+.ack figcaption{margin-top:.9rem;color:var(--muted);font-size:.875rem}
+.enquiry .back{display:inline-block;margin-top:2rem;font-weight:500}
+
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;scroll-behavior:auto!important}}
 `;

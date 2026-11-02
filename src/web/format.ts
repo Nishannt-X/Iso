@@ -62,3 +62,9 @@ export function metaDescription(text: string, max = 155): string {
   const cut = text.slice(0, max - 1);
   return `${cut.slice(0, cut.lastIndexOf(' '))}…`;
 }
+
+/** "2 Nov 2026, 3:35 pm IST" from a stored UTC timestamp. India has no daylight saving, so IST is always right. */
+export function formatReceived(iso: string): string {
+  const when = new Date(iso).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+  return `${when} IST`;
+}

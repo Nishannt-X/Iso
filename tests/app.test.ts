@@ -179,21 +179,6 @@ describe('GET /packages/:slug (package detail)', () => {
   });
 });
 
-describe('enquire placeholder', () => {
-  const app = createApp(resetDatabase(':memory:'), { siteUrl: SITE });
-
-  test('names the package, is noindex and links back; unknown packages get the generic text', async () => {
-    const body = await text(await app.request('/enquire?package=munnar-thekkady-and-alleppey-houseboat-6-days'));
-    assert.ok(body.includes('The enquiry form is not live yet'));
-    assert.ok(body.includes('Munnar, Thekkady and Alleppey houseboat'));
-    assert.ok(body.includes('<meta name="robots" content="noindex"'));
-    assert.ok(body.includes(`href="${KL07}"`));
-    const generic = await text(await app.request('/enquire?package=<script>'));
-    assert.ok(!generic.includes('<script>'));
-    assert.ok(generic.includes('See all packages'));
-  });
-});
-
 describe('sitemap.xml and robots.txt', () => {
   const app = createApp(resetDatabase(':memory:'), { siteUrl: `${SITE}/` });
 
@@ -221,7 +206,7 @@ describe('sitemap.xml and robots.txt', () => {
 
   test('robots.txt allows crawling, keeps the placeholder out and points at the sitemap', async () => {
     const body = await text(await app.request('/robots.txt'));
-    assert.equal(body, `User-agent: *\nAllow: /\nDisallow: /enquire\n\nSitemap: ${SITE}/sitemap.xml\n`);
+    assert.equal(body, `User-agent: *\nAllow: /\nDisallow: /enquire\nDisallow: /enquiry/\n\nSitemap: ${SITE}/sitemap.xml\n`);
   });
 });
 

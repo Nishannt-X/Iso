@@ -7,14 +7,20 @@ import { trimTrailingSlash } from 'hono/trailing-slash';
 import { get, type DatabaseSync } from './db/db.js';
 import { getLiveVersionBySlug, listDataOrigins, listLiveVersions } from './domain/packages.js';
 import { PHOTO_FILE_PATTERN } from './domain/photos.js';
+import { DEFAULT_LIMITS, registerEnquiryRoutes, type EnquiryLimits } from './web/enquiry-routes.js';
 import { HomePage, MessagePage, PackagePage, packagePath, type PageContext } from './web/pages.js';
 
 // Public site (slice S2): server-rendered home/list and package detail, plus sitemap, robots and 404.
-// The Enquire button points at /enquire, a placeholder until the enquiry form (S3) exists.
+// Slice S3 adds the enquiry flow (src/web/enquiry-routes.tsx): the form behind every Enquire button and the status page.
 
 export interface AppOptions {
   /** Absolute origin used in canonical links, the sitemap and robots.txt, e.g. https://example.com */
   siteUrl?: string;
+  /** True only behind exactly one trusted reverse proxy; then X-Forwarded-For identifies the client for rate limits. */
+  trustProxy?: boolean;
+  /** Clock, injectable for tests. */
+  now?: () => Date;
+  limits?: Partial<EnquiryLimits>;
 }
 
 const PUBLIC_DIR = fileURLToPath(new URL('./public/', import.meta.url));
@@ -65,26 +71,10 @@ export function createApp(db: DatabaseSync, options: AppOptions = {}): Hono {
     return c.html(doc(<PackagePage v={version} origin={listDataOrigins(db).get(version.packageId)} ctx={ctx} />));
   });
 
-  // Placeholder target for every Enquire button until the enquiry form is built (S3).
-  app.get('/enquire', (c) => {
-    const slug = c.req.query('package') ?? '';
-    const version = SLUG.test(slug) ? getLiveVersionBySlug(db, slug) : undefined;
-    return c.html(
-      doc(
-        <MessagePage
-          title="The enquiry form is not live yet"
-          body={
-            version
-              ? `Enquiries for ${version.title} will open in the next release of this demo build. Nothing can be sent from here yet.`
-              : 'Enquiries will open in the next release of this demo build. Nothing can be sent from here yet.'
-          }
-          ctx={ctx}
-          path="/enquire"
-          linkText={version ? 'Back to the package' : 'See all packages'}
-          linkHref={version ? packagePath(version.packageSlug) : '/#packages'}
-        />,
-      ),
-    );
+  registerEnquiryRoutes(app, db, ctx, {
+    now: options.now ?? (() => new Date()),
+    trustProxy: options.trustProxy ?? false,
+    limits: { ...DEFAULT_LIMITS, ...options.limits },
   });
 
   app.get('/assets/:dir/:file', async (c) => {
@@ -113,7 +103,7 @@ export function createApp(db: DatabaseSync, options: AppOptions = {}): Hono {
   });
 
   app.get('/robots.txt', (c) =>
-    c.text(`User-agent: *\nAllow: /\nDisallow: /enquire\n\nSitemap: ${ctx.siteUrl}/sitemap.xml\n`),
+    c.text(`User-agent: *\nAllow: /\nDisallow: /enquire\nDisallow: /enquiry/\n\nSitemap: ${ctx.siteUrl}/sitemap.xml\n`),
   );
 
   app.notFound((c) =>
