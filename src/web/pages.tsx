@@ -33,9 +33,12 @@ function PackageRow({ v, origin }: { v: PackageVersion; origin: DataOrigin | und
   const stars = starLabel(v.starRating);
   return (
     <li class="row">
-      <div class={hero ? 'thumb' : 'thumb none'}>
-        {hero ? <Picture photo={hero} sizes="(min-width: 56rem) 58vw, 100vw" /> : <span>Photo to come</span>}
-      </div>
+      <figure class="shot">
+        <div class={hero ? 'thumb' : 'thumb none'}>
+          {hero ? <Picture photo={hero} sizes="(min-width: 56rem) 58vw, 100vw" /> : <span>Photo to come</span>}
+        </div>
+        {hero ? <figcaption class="credit-below"><Credit photo={hero} /></figcaption> : null}
+      </figure>
       <div>
         <h2><a href={packagePath(v.packageSlug)}>{v.title}</a></h2>
         <p class="facts">{[duration(v), stars ? `${stars} stays` : null, v.region].filter(Boolean).join(' · ')}</p>

@@ -60,6 +60,19 @@ describe('GET / (home and package list)', () => {
     assert.ok(body.includes('via Wikimedia Commons'));
   });
 
+  test('credits the author, licence and Commons page beside every package thumbnail', async () => {
+    const body = await text(await app.request('/'));
+    const rows = body.split('<li class="row">').slice(1).map((r) => r.split('</li>')[0] ?? '');
+    const withPhoto = rows.filter((r) => r.includes('<img '));
+    assert.ok(withPhoto.length > 0);
+    for (const row of withPhoto) {
+      const caption = /<figcaption class="credit-below">(.*?)<\/figcaption>/s.exec(row)?.[1] ?? '';
+      assert.match(caption, /Photo: [^<]+,/);
+      assert.match(caption, /<a href="https:\/\/[^"]+" rel="noopener noreferrer">CC BY[^<]*<\/a>/);
+      assert.match(caption, /<a href="https:\/\/commons\.wikimedia\.org\/[^"]+" rel="noopener noreferrer">via Wikimedia Commons<\/a>/);
+    }
+  });
+
   test('shows an empty state when nothing is published', async () => {
     const db = openDb(':memory:');
     initSchema(db);

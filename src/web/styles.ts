@@ -72,7 +72,10 @@ figcaption.credit-below a{color:inherit}
 .notice{max-width:46rem;color:var(--muted);font-size:.9375rem;margin-bottom:clamp(2.5rem,6vw,4rem)}
 .rows{display:grid;gap:clamp(3rem,7vw,5.5rem)}
 .row{position:relative;display:grid;gap:1.25rem 3rem;align-items:center}
-@media(min-width:56rem){.row{grid-template-columns:minmax(0,7fr) minmax(0,5fr)}.row:nth-child(even) .thumb{order:2}}
+@media(min-width:56rem){.row{grid-template-columns:minmax(0,7fr) minmax(0,5fr)}.row:nth-child(even) .shot{order:2}}
+.shot{margin:0}
+.row .credit-below{text-align:left}
+.row .credit-below a{position:relative;z-index:1}
 .thumb{overflow:hidden;background:#d9e0dd;aspect-ratio:3/2}
 .thumb.none{display:grid;place-items:center;color:var(--muted);font-size:.9375rem}
 .thumb img{width:100%;height:100%;object-fit:cover;transition:transform .6s var(--ease)}
