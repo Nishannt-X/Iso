@@ -3,6 +3,7 @@ import { bodyLimit } from 'hono/body-limit';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { createMiddleware } from 'hono/factory';
 import { get, type DatabaseSync } from '../db/db.js';
+import { createEnquiry, emptyForm, indiaToday, newSubmissionKey, validateEnquiry, FIELDS, type RawForm } from '../domain/enquiries.js';
 import { acceptAnalysis, analyseEnquiry, getAnalysis, type ExtractedFields } from '../domain/analysis.js';
 import { createBlog, listStaffBlogs, publishBlog, saveBlogDraft, startBlogRevision, type BlogRow } from '../domain/blog.js';
 import { emptyPackageForm, formFromBody, formFromVersion, parsePackageForm } from '../domain/package-form.js';
@@ -21,6 +22,7 @@ import { clientKey, isSameSite } from './request.js';
 import { ActivityPage, InboxPageView, LoginPage, StaffMessage, type Viewer } from './staff-pages.js';
 import { DONE_TEXT, WorkspacePage, type ProblemArea, type Retained } from './workspace-page.js';
 import { QuoteBuilderPage, StaffQuotePage } from './quote-pages.js';
+import { IntakePage } from './intake-page.js';
 
 // Staff area (slice S4), all under /staff:
 //   GET/POST /staff/login, POST /staff/logout
@@ -198,6 +200,32 @@ export function registerStaffRoutes(app: Hono, db: DatabaseSync, ctx: PageContex
     const viewer = sessionViewer(c);
     const data = listInbox(db, parsed.query, viewer.id, options.now());
     return page(c, <InboxPageView ctx={ctx} viewer={viewer} data={data} query={parsed.query} staff={listAssignable(db)} />);
+  });
+
+  staff.get('/intake/new', (c) => {
+    const versions = listLiveVersions(db);
+    return page(c, <IntakePage ctx={ctx} viewer={sessionViewer(c)} packages={versions} fields={emptyForm()} packageSlug={versions[0]?.packageSlug ?? ''} channel="email" />);
+  });
+  staff.post('/intake/new', async (c) => {
+    const body = await c.req.parseBody();
+    const fields = emptyForm();
+    for (const key of FIELDS) fields[key] = text(body, key);
+    const versions = listLiveVersions(db);
+    const slug = text(body, 'package');
+    const channel = text(body, 'channel');
+    const show = (error: string) => page(c, <IntakePage ctx={ctx} viewer={sessionViewer(c)} packages={versions} fields={fields} packageSlug={slug} channel={channel} error={error} />, 422);
+    if (!['email','chat','whatsapp','phone'].includes(channel)) return show('Choose an external channel.');
+    const version = versions.find((v) => v.packageSlug === slug);
+    if (!version) return show('Choose a published package.');
+    const parsed = validateEnquiry(fields as RawForm, indiaToday(options.now()));
+    if (!parsed.ok) return show(Object.values(parsed.errors).join(' '));
+    if (channel === 'email' && !parsed.value.email) return show('An email enquiry needs an email address.');
+    if ((channel === 'phone' || channel === 'whatsapp') && !parsed.value.phone) return show('A phone or WhatsApp enquiry needs a phone number.');
+    try {
+      const result = createEnquiry(db, { input: parsed.value, versionId: version.id, submissionKey: newSubmissionKey(), intakeChannel: channel as 'email' | 'chat' | 'whatsapp' | 'phone', enteredBy: c.get('session').user.id, now: options.now() });
+      const id = get<{ id: number }>(db, 'SELECT id FROM enquiries WHERE reference=?', result.reference)?.id;
+      return c.redirect(id ? `/staff/enquiries/${id}` : '/staff/inbox', 303);
+    } catch (err) { if (!(err instanceof DomainError)) throw err; return show(err.message); }
   });
 
   // ---- workspace ----------------------------------------------------------

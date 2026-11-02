@@ -112,6 +112,7 @@ export interface InboxRow {
   assigneeId: number | null;
   assigneeName: string | null;
   isSample: boolean;
+  intakeChannel: 'web' | 'email' | 'chat' | 'whatsapp' | 'phone';
   sla: Sla;
 }
 
@@ -169,10 +170,10 @@ export function listInbox(db: DatabaseSync, query: InboxQuery, viewerId: number,
 
   const rows = all<{
     id: number; reference: string; name: string; adults: number; children: number; created_at: string; title: string; status: Status;
-    assignee_id: number | null; assignee_name: string | null; origin: string; first_reply_at: string | null;
+    assignee_id: number | null; assignee_name: string | null; origin: string; intake_channel: InboxRow['intakeChannel']; first_reply_at: string | null;
   }>(
     db,
-    `SELECT e.id, e.reference, e.name, e.adults, e.children, e.created_at, e.origin, v.title, w.status, w.assignee_id,
+    `SELECT e.id, e.reference, e.name, e.adults, e.children, e.created_at, e.origin, e.intake_channel, v.title, w.status, w.assignee_id,
             (SELECT a.name FROM staff_users a WHERE a.id = w.assignee_id) AS assignee_name,
             (SELECT MIN(o.created_at) FROM outbox_messages o WHERE o.enquiry_id = e.id AND o.kind = 'staff_reply') AS first_reply_at
        ${from}
@@ -185,7 +186,7 @@ export function listInbox(db: DatabaseSync, query: InboxQuery, viewerId: number,
   return {
     rows: rows.map((r) => ({
       id: r.id, reference: r.reference, name: r.name, adults: r.adults, children: r.children, createdAt: r.created_at, packageTitle: r.title,
-      status: r.status, assigneeId: r.assignee_id, assigneeName: r.assignee_name, isSample: r.origin === 'seed_sample',
+      status: r.status, assigneeId: r.assignee_id, assigneeName: r.assignee_name, isSample: r.origin === 'seed_sample', intakeChannel: r.intake_channel,
       sla: slaFor({ createdAt: r.created_at, firstReplyAt: r.first_reply_at, status: r.status, now }),
     })),
     total, page: query.page, pageCount, counts,
@@ -223,7 +224,7 @@ export interface WorkspaceMessage {
 
 export interface Workspace {
   enquiry: {
-    id: number; reference: string; origin: 'web_form' | 'seed_sample'; createdAt: string; name: string; email: string | null; phone: string | null;
+    id: number; reference: string; origin: 'web_form' | 'seed_sample'; intakeChannel: InboxRow['intakeChannel']; createdAt: string; name: string; email: string | null; phone: string | null;
     travelStart: string | null; adults: number; children: number; childAges: number[]; destination: string | null;
     budgetInr: number | null; budgetBasis: 'total' | 'per_person' | null; message: string;
     whatsappConsent: boolean; whatsappConsentText: string | null; whatsappConsentAt: string | null; privacyNoticeVersion: string;
@@ -258,7 +259,7 @@ export function getWorkspace(db: DatabaseSync, id: number, now: Date): Workspace
   const str = (k: string): string => e[k] as string;
   const strOrNull = (k: string): string | null => (e[k] as string | null) ?? null;
   const enquiry: Workspace['enquiry'] = {
-    id, reference: str('reference'), origin: e.origin as 'web_form' | 'seed_sample', createdAt: str('created_at'), name: str('name'),
+    id, reference: str('reference'), origin: e.origin as 'web_form' | 'seed_sample', intakeChannel: e.intake_channel as InboxRow['intakeChannel'], createdAt: str('created_at'), name: str('name'),
     email: strOrNull('email'), phone: strOrNull('phone'), travelStart: strOrNull('travel_start'), adults: e.adults as number, children: e.children as number,
     childAges: JSON.parse(str('child_ages_json')) as number[], destination: strOrNull('destination'), budgetInr: (e.budget_inr as number | null) ?? null,
     budgetBasis: (e.budget_basis as 'total' | 'per_person' | null) ?? null, message: str('message'), whatsappConsent: e.whatsapp_consent === 1,

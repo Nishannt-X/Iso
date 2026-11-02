@@ -160,7 +160,7 @@ function Row({ r, viewerId }: { r: InboxRow; viewerId: number }) {
         </div>
         <div>
           <span class="q-name">{r.name}{r.isSample ? <span class="chip sample">Sample from brief</span> : null}</span>
-          <span class="q-sub">{partyText(r.adults, r.children)} · {r.packageTitle}</span>
+          <span class="q-sub">{partyText(r.adults, r.children)} · {r.packageTitle} · {r.intakeChannel === 'web' ? 'Website' : r.intakeChannel}</span>
         </div>
         <div>
           <StatusChip status={r.status} />
@@ -181,8 +181,7 @@ export function InboxPageView(props: { ctx: PageContext; viewer: Viewer; data: I
   return (
     <StaffShell ctx={props.ctx} viewer={viewer} title="Enquiries" path="/staff/inbox" section="inbox">
       <div class="wrap staff-page">
-        <h1>Enquiries</h1>
-        <p class="lede">Every enquiry sent through the website form lands here. Open one to assign it, add notes and record a reply.</p>
+        <div class="cms-head"><div><h1>Enquiries</h1><p class="lede">Website and staff-logged external enquiries share one queue. Open one to assign it, add notes and record a reply.</p></div><a class="btn secondary" href="/staff/intake/new">Log external enquiry</a></div>
 
         <nav class="tabs" aria-label="Status">
           {TABS.map((t) => (

@@ -149,3 +149,10 @@
 - **Consequences:** Old quotes do not change when package prices change. The link is a bearer link with no expiry; it contains party size and fare but no traveller name or contact, and is marked noindex/no-store. Company A must confirm tax and child policies before calling a partial estimate a final quote.
 - **Decided by:** agent (Builder) · **Related:** `feat/kochi-tours-core`
 
+## 2026-11-02 · Mocked external-channel intake into one inbox
+- **Status:** accepted
+- **Context:** The brief asks that enquiries from web, chat, WhatsApp, email and phone reach one queue, but supplies no integration endpoints or credentials and permits outside systems to be mocked.
+- **Decision:** Add a staff-only intake form for the four external channels. It validates the same fields as the public form, stores the source channel and staff actor beside the immutable original, and records a fixed acknowledgement in the mock outbox. The shared inbox and workspace show the source. WhatsApp follow-up consent remains an explicit separate checkbox.
+- **Consequences:** No external connector or real acknowledgement transport runs. Company A must configure those after providing provider access. Demo staff must use synthetic personal data.
+- **Decided by:** agent (Builder) · **Related:** `feat/kochi-tours-core`
+

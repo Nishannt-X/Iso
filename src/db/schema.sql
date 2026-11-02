@@ -224,8 +224,10 @@ CREATE TABLE enquiries (
   submission_key          TEXT NOT NULL UNIQUE,
   -- SHA-256 of the normalised submission, to recognise an identical resend from a fresh form.
   dedupe_hash             TEXT NOT NULL,
-  -- 'seed_sample' marks the brief's sample enquiry inserted by the seed; everything else is 'web_form'.
+  -- Legacy entry path. intake_channel below identifies externally logged enquiries.
   origin                  TEXT NOT NULL DEFAULT 'web_form' CHECK (origin IN ('web_form', 'seed_sample')),
+  intake_channel          TEXT NOT NULL DEFAULT 'web' CHECK (intake_channel IN ('web','email','chat','whatsapp','phone')),
+  entered_by              INTEGER REFERENCES staff_users(id),
   -- The package version that was live when the form was sent. The package is reached through it.
   source_version_id       INTEGER NOT NULL REFERENCES package_versions(id) ON DELETE RESTRICT,
   name                    TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 120),
@@ -434,4 +436,4 @@ CREATE TABLE package_quotes (
 );
 CREATE INDEX ix_package_quotes_enquiry ON package_quotes(enquiry_id, created_at DESC);
 
-PRAGMA user_version = 7;
+PRAGMA user_version = 8;

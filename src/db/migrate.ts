@@ -96,4 +96,9 @@ export function migrateSchema(db: DatabaseSync): void {
     CREATE INDEX ix_package_quotes_enquiry ON package_quotes(enquiry_id, created_at DESC);
     PRAGMA user_version = 7;
     COMMIT;`);
+  if (schemaVersion(db) === 7) db.exec(`BEGIN IMMEDIATE;
+    ALTER TABLE enquiries ADD COLUMN intake_channel TEXT NOT NULL DEFAULT 'web' CHECK (intake_channel IN ('web','email','chat','whatsapp','phone'));
+    ALTER TABLE enquiries ADD COLUMN entered_by INTEGER REFERENCES staff_users(id);
+    PRAGMA user_version = 8;
+    COMMIT;`);
 }

@@ -2,6 +2,7 @@ import { createHash, randomBytes, randomInt } from 'node:crypto';
 import { get, run, transaction, type DatabaseSync } from '../db/db.js';
 import { DomainError } from './packages.js';
 import { PRIVACY_NOTICE_VERSION, WHATSAPP_CONSENT_TEXT } from './notices.js';
+import { writeAudit } from './audit.js';
 
 // Public enquiries (slice S3): validate what a traveller typed, store it as an immutable record,
 // and record a fixed-template acknowledgement in the mock outbox. Nothing is ever sent.
@@ -219,6 +220,8 @@ export interface CreateEnquiryArgs {
   versionId: number;
   submissionKey: string;
   origin?: 'web_form' | 'seed_sample';
+  intakeChannel?: 'web' | 'email' | 'chat' | 'whatsapp' | 'phone';
+  enteredBy?: number | null;
   now?: Date;
   /** Called after the duplicate checks and just before the insert; throw to stop a new enquiry (e.g. a rate limit). */
   beforeInsert?: () => void;
@@ -248,7 +251,7 @@ export function createEnquiry(db: DatabaseSync, args: CreateEnquiryArgs): Create
     const sameKey = get<Existing>(db, 'SELECT public_token, reference FROM enquiries WHERE submission_key = ?', submissionKey);
     if (sameKey) return { token: sameKey.public_token, reference: sameKey.reference, outcome: 'same_submission' as const };
 
-    const dedupeHash = createHash('sha256').update(JSON.stringify([version.package_id, input])).digest('hex');
+    const dedupeHash = createHash('sha256').update(JSON.stringify([version.package_id, args.intakeChannel ?? 'web', input])).digest('hex');
     const since = new Date(now.getTime() - DUPLICATE_WINDOW_MS).toISOString();
     const sameContent = get<Existing>(
       db, 'SELECT public_token, reference FROM enquiries WHERE dedupe_hash = ? AND created_at >= ? ORDER BY id LIMIT 1', dedupeHash, since,
@@ -266,11 +269,11 @@ export function createEnquiry(db: DatabaseSync, args: CreateEnquiryArgs): Create
       run(
         db,
         `INSERT INTO enquiries
-           (reference, public_token, submission_key, dedupe_hash, origin, source_version_id, name, email, phone,
+           (reference, public_token, submission_key, dedupe_hash, origin, intake_channel, entered_by, source_version_id, name, email, phone,
             travel_start, adults, children, child_ages_json, destination, budget_inr, budget_basis, message,
             whatsapp_consent, whatsapp_consent_text, whatsapp_consent_at, privacy_notice_version, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        reference, token, submissionKey, dedupeHash, args.origin ?? 'web_form', versionId, input.name, input.email, input.phone,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        reference, token, submissionKey, dedupeHash, args.origin ?? 'web_form', args.intakeChannel ?? 'web', args.enteredBy ?? null, versionId, input.name, input.email, input.phone,
         input.travelStart, input.adults, input.children, JSON.stringify(input.childAges), input.destination, input.budgetInr, input.budgetBasis,
         input.message, input.whatsappConsent ? 1 : 0, input.whatsappConsent ? WHATSAPP_CONSENT_TEXT : null, input.whatsappConsent ? at : null,
         PRIVACY_NOTICE_VERSION, at,
@@ -285,6 +288,7 @@ export function createEnquiry(db: DatabaseSync, args: CreateEnquiryArgs): Create
        VALUES (?, 'acknowledgement', ?, ?, ?, ?, ?, ?)`,
       enquiryId, route.channel, route.recipient, route.channel === 'email' ? ack.subject : null, ack.body, ACK_TEMPLATE_VERSION, at,
     );
+    if (args.enteredBy != null) writeAudit(db, args.enteredBy, 'enquiry.external_intake', 'enquiry', enquiryId, { channel: args.intakeChannel ?? 'web' });
     return { token, reference, outcome: 'created' as const };
   });
 }

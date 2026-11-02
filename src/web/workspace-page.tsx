@@ -264,7 +264,7 @@ export function WorkspacePage(v: WorkspaceView) {
                 <Item label="WhatsApp consent">
                   {e.whatsappConsent ? `Given on ${formatReceived(e.whatsappConsentAt ?? e.createdAt)}` : 'Not given'}
                 </Item>
-                <Item label="Source">{e.origin === 'seed_sample' ? 'Sample enquiry from the client brief (seed data)' : 'Website enquiry form'}</Item>
+                <Item label="Source">{e.origin === 'seed_sample' ? 'Sample enquiry from the client brief (seed data)' : e.intakeChannel === 'web' ? 'Website enquiry form' : `${e.intakeChannel} (staff logged, mock external intake)`}</Item>
                 <Item label="Privacy notice">{e.privacyNoticeVersion} (draft wording)</Item>
               </dl>
             </section>
