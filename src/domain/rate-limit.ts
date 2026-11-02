@@ -43,13 +43,51 @@ export class RateLimiter {
   }
 
   private evict(nowMs: number): void {
+    // 1. Prune expired hits and remove keys that no longer have hits within the sliding window.
     for (const [key, times] of this.hits) {
-      if (!times.some((t) => t > nowMs - this.windowMs)) this.hits.delete(key);
+      const active = times.filter((t) => t > nowMs - this.windowMs);
+      if (active.length === 0) {
+        this.hits.delete(key);
+      } else if (active.length !== times.length) {
+        this.hits.set(key, active);
+      }
     }
-    // Still full of live keys: drop the least recently active until back under the bound.
-    for (const key of this.hits.keys()) {
-      if (this.hits.size <= this.maxKeys) break;
-      this.hits.delete(key);
+
+    if (this.hits.size <= this.maxKeys) return;
+
+    // 2. Memory bound reached with live keys.
+    // To prevent key spraying from defeating rate limits, prioritize retaining actively blocked keys
+    // (hits >= limit) and keys with higher hit counts. An attacker spraying single-hit fake keys must
+    // never evict a blocked account or an account accumulating failed attempts.
+    const unblocked: { key: string; count: number; lastHit: number }[] = [];
+    const blocked: { key: string; oldestHit: number }[] = [];
+
+    for (const [key, times] of this.hits) {
+      if (times.length < this.limit) {
+        unblocked.push({ key, count: times.length, lastHit: times[times.length - 1] ?? 0 });
+      } else {
+        blocked.push({ key, oldestHit: times[0] ?? 0 });
+      }
+    }
+
+    // Unblocked keys are evicted first: lowest hit count first, then least recently active (oldest lastHit).
+    unblocked.sort((a, b) => a.count - b.count || a.lastHit - b.lastHit);
+
+    let needed = this.hits.size - this.maxKeys;
+    for (const item of unblocked) {
+      if (needed <= 0) break;
+      this.hits.delete(item.key);
+      needed--;
+    }
+
+    if (needed > 0) {
+      // If the limiter is entirely full of blocked keys, evict the blocked key whose penalty expires soonest.
+      blocked.sort((a, b) => a.oldestHit - b.oldestHit);
+      for (const item of blocked) {
+        if (needed <= 0) break;
+        this.hits.delete(item.key);
+        needed--;
+      }
     }
   }
 }

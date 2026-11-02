@@ -138,6 +138,21 @@ describe('sign in', () => {
     assert.equal((await byClient.post('/staff/login', { email: ADMIN, password: PASSWORD })).status, 303, 'the window passes');
   });
 
+  test('key spraying with random emails cannot unblock a locked-out staff email', async () => {
+    const h = harness({ loginLimits: { perEmail: 3, perClient: 1000 } });
+    for (let i = 0; i < 3; i++) assert.equal((await h.post('/staff/login', { email: ADMIN, password: 'wrong-password-1' })).status, 422);
+    assert.equal((await h.post('/staff/login', { email: ADMIN, password: PASSWORD })).status, 429);
+
+    // Attacker sends requests with random email addresses attempting to flush the limiter
+    for (let i = 0; i < 60; i++) {
+      await h.post('/staff/login', { email: `spray-${i}@example.invalid`, password: 'wrong' });
+    }
+
+    // ADMIN must still be locked out
+    const afterSpray = await h.post('/staff/login', { email: ADMIN, password: PASSWORD });
+    assert.equal(afterSpray.status, 429, 'ADMIN must remain throttled despite key spraying');
+  });
+
   test('sign-in needs a same-site Origin: none, null, other sites and cross-site fetches are refused', async () => {
     const h = harness();
     const fields = new URLSearchParams({ email: ADMIN, password: PASSWORD }).toString();
