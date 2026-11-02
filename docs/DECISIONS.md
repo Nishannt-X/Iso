@@ -1,5 +1,13 @@
 # Decisions (newest first)
 
+## 2026-11-02 · Landing redesign: journey ticket and timetable, themed from tags, planner deferred
+- **Status:** accepted
+- **Context:** the owner found v1 too basic and asked for an editorial, immersive landing page. Four independent grillers reviewed the v2 plan (UX, scope, security, break-it cases); GPT-6 Sol (review A) ruled on each finding against the repo before any was applied.
+- **Options considered:** A) the planned search-strip hero, traveller-type sections and trust section; B) the assigned direction (railway ticket and timetable) with only supported content; C) the category-standard travel-magazine page; D) a Kerala mural palette.
+- **Decision:** B, chosen by the owner from the roll. Sol upheld-with-modification: no non-working planner strip (deferred to the search slice), journeys grouped by tag-derived themes rather than traveller types, trust copy limited to facts already on the site, every nav target must resolve. The action colour stays the established teal (UX-10): a crimson accent in the first contract was dropped. No new dependency, font or schema.
+- **Consequences:** the planner strip, destination pages, search and quote builder remain to be built and need `PROJECT_BRIEF.md` updated first, as Sol required, because they were deferred there. Theme grouping is only as good as the package tags, which are synthetic. The home page now loads five photographs (one eager).
+- **Decided by:** owner (direction), Sol review A (scope of claims), Builder · **Related:** branch `feat/editorial-landing`
+
 ## 2026-11-02 · S3 enquiry flow: immutable record, mock outbox, opaque status link, spam and duplicate handling
 - **Status:** accepted
 - **Context:** S3 replaces the `/enquire` placeholder with a working public enquiry flow. The brief asks for an instant fixed-template acknowledgement, WhatsApp consent, DPDP-aware handling of traveller data and the original message beside AI output later. It gives no privacy wording, retention period, reply-time promise or rate limits.
