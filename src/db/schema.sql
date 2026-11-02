@@ -416,4 +416,22 @@ CREATE UNIQUE INDEX ux_blog_draft ON blog_versions(post_id) WHERE status='draft'
 CREATE UNIQUE INDEX ux_blog_live ON blog_versions(post_id) WHERE status='published';
 CREATE INDEX ix_blog_live_category ON blog_versions(status, category, published_at);
 
-PRAGMA user_version = 6;
+CREATE TABLE package_quotes (
+  id INTEGER PRIMARY KEY,
+  public_token TEXT NOT NULL UNIQUE,
+  enquiry_id INTEGER NOT NULL REFERENCES enquiries(id),
+  package_version_id INTEGER NOT NULL REFERENCES package_versions(id),
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'approved', 'mock_recorded')),
+  start_date TEXT NOT NULL,
+  adults INTEGER NOT NULL CHECK (adults BETWEEN 1 AND 50),
+  children INTEGER NOT NULL CHECK (children BETWEEN 0 AND 20),
+  snapshot_json TEXT NOT NULL,
+  created_by INTEGER NOT NULL REFERENCES staff_users(id),
+  approved_by INTEGER REFERENCES staff_users(id),
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  approved_at TEXT,
+  recorded_at TEXT
+);
+CREATE INDEX ix_package_quotes_enquiry ON package_quotes(enquiry_id, created_at DESC);
+
+PRAGMA user_version = 7;

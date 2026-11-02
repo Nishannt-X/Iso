@@ -13,6 +13,9 @@ import { DEFAULT_LIMITS, registerEnquiryRoutes, type EnquiryLimits } from './web
 import { DEFAULT_LOGIN_LIMITS, registerStaffRoutes, type LoginLimits } from './web/staff-routes.js';
 import { HomePage, MessagePage, PackagePage, PackageSearchPage, packagePath, type PageContext } from './web/pages.js';
 import { BlogArticlePage, BlogIndexPage } from './web/blog-pages.js';
+import { getPublicQuote } from './domain/package-quotes.js';
+import { renderQuotePdf } from './domain/quote-pdf.js';
+import { PublicQuotePage } from './web/quote-pages.js';
 
 // Public site (slice S2): server-rendered home/list and package detail, plus sitemap, robots and 404.
 // Slice S3 adds the enquiry flow (src/web/enquiry-routes.tsx): the form behind every Enquire button and the status page.
@@ -62,7 +65,7 @@ export function createApp(db: DatabaseSync, options: AppOptions = {}): Hono {
   // The status page URL holds a secret token, so it alone stays "no-referrer".
   const defaultHeaders = securityHeaders('same-origin');
   const statusPageHeaders = securityHeaders('no-referrer');
-  app.use((c, next) => (c.req.path.startsWith('/enquiry/received/') ? statusPageHeaders : defaultHeaders)(c, next));
+  app.use((c, next) => (c.req.path.startsWith('/enquiry/received/') || c.req.path.startsWith('/quote/') ? statusPageHeaders : defaultHeaders)(c, next));
   app.use(trimTrailingSlash());
 
   app.get('/healthz', (c) => {
@@ -98,6 +101,24 @@ export function createApp(db: DatabaseSync, options: AppOptions = {}): Hono {
     if (!post) return c.notFound();
     const live = listLiveVersions(db);
     return c.html(doc(<BlogArticlePage post={post} related={live.filter((p) => post.relatedCodes.includes(p.packageCode))} ctx={ctx} />));
+  });
+
+  app.get('/quote/:token/download', async (c) => {
+    const row = getPublicQuote(db, c.req.param('token'));
+    if (!row) return c.notFound();
+    const pdf = await renderQuotePdf(row);
+    c.header('Cache-Control', 'no-store');
+    c.header('X-Robots-Tag', 'noindex, nofollow');
+    c.header('Content-Disposition', `attachment; filename="kochi-quote-${row.id}.pdf"`);
+    c.header('Content-Type', 'application/pdf');
+    return c.body(new Uint8Array(pdf));
+  });
+  app.get('/quote/:token', (c) => {
+    const row = getPublicQuote(db, c.req.param('token'));
+    if (!row) return c.notFound();
+    c.header('Cache-Control', 'no-store');
+    c.header('X-Robots-Tag', 'noindex, nofollow');
+    return c.html(doc(<PublicQuotePage ctx={ctx} row={row} />));
   });
 
   registerEnquiryRoutes(app, db, ctx, {

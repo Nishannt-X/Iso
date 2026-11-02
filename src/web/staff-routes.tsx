@@ -9,6 +9,7 @@ import { emptyPackageForm, formFromBody, formFromVersion, parsePackageForm } fro
 import { createPackage, DomainError, listLiveVersions, listPackageHistory, listPackagesForStaff, publish, restoreVersion, saveDraft, type PackageAdminRow } from '../domain/packages.js';
 import { cancelPublication, getPublicationSchedule, schedulePublication } from '../domain/publication-schedule.js';
 import { RateLimiter } from '../domain/rate-limit.js';
+import { approvePackageQuote, createPackageQuote, getQuote, listQuotes, recordPackageQuote } from '../domain/package-quotes.js';
 import {
   authenticate, csrfMatches, endSession, listAssignable, resolveSession, startSession, type StaffSession, type StaffUser,
 } from '../domain/staff.js';
@@ -19,6 +20,7 @@ import { PackagePage, type PageContext } from './pages.js';
 import { clientKey, isSameSite } from './request.js';
 import { ActivityPage, InboxPageView, LoginPage, StaffMessage, type Viewer } from './staff-pages.js';
 import { DONE_TEXT, WorkspacePage, type ProblemArea, type Retained } from './workspace-page.js';
+import { QuoteBuilderPage, StaffQuotePage } from './quote-pages.js';
 
 // Staff area (slice S4), all under /staff:
 //   GET/POST /staff/login, POST /staff/logout
@@ -203,7 +205,7 @@ export function registerStaffRoutes(app: Hono, db: DatabaseSync, ctx: PageContex
   const workspaceResponse = (c: Context<StaffEnv>, id: number, status: 200 | ErrorStatus, extra: { problem?: { area: ProblemArea; message: string }; retained?: Retained; saved?: string } = {}) => {
     const ws = getWorkspace(db, id, options.now());
     if (!ws) return message(c, 404, 'Enquiry not found', 'There is no enquiry with that number.', sessionViewer(c), { href: '/staff/inbox', text: 'Back to the inbox' });
-    return page(c, <WorkspacePage ctx={ctx} viewer={sessionViewer(c)} ws={ws} staff={listAssignable(db)} analysis={getAnalysis(db, id)} {...extra} />, status);
+    return page(c, <WorkspacePage ctx={ctx} viewer={sessionViewer(c)} ws={ws} staff={listAssignable(db)} analysis={getAnalysis(db, id)} quotes={listQuotes(db, id)} {...extra} />, status);
   };
 
   staff.get('/enquiries/:id', (c) => {
@@ -253,6 +255,46 @@ export function registerStaffRoutes(app: Hono, db: DatabaseSync, ctx: PageContex
       return 'note';
     }),
   );
+
+  // ---- quote builder: stored pricing snapshot, human approval, mock send ---
+
+  const quoteId = (raw: string | undefined) => raw && ID.test(raw) ? Number(raw) : 0;
+  staff.get('/quotes/new', (c) => {
+    const id = quoteId(c.req.query('enquiry'));
+    const ws = getWorkspace(db, id, options.now());
+    if (!ws) return message(c, 404, 'Enquiry not found', 'Choose an enquiry from the inbox.', sessionViewer(c));
+    const versions = listLiveVersions(db);
+    return page(c, <QuoteBuilderPage ctx={ctx} viewer={sessionViewer(c)} enquiryId={id} versions={versions} defaults={{ slug: ws.package.isLive ? ws.package.slug : versions[0]?.packageSlug ?? '', date: ws.enquiry.travelStart ?? '', adults: ws.enquiry.adults, children: ws.enquiry.children }} />);
+  });
+  staff.post('/quotes/new', async (c) => {
+    const body = await c.req.parseBody();
+    const id = quoteId(text(body, 'enquiryId'));
+    const ws = getWorkspace(db, id, options.now());
+    if (!ws) return message(c, 404, 'Enquiry not found', 'Choose an enquiry from the inbox.', sessionViewer(c));
+    const defaults = { slug: text(body, 'slug'), date: text(body, 'date'), adults: Number(text(body, 'adults')), children: Number(text(body, 'children')) };
+    try { const created = createPackageQuote(db, { enquiryId: id, slug: defaults.slug, startDate: defaults.date, adults: defaults.adults, children: defaults.children, actorId: c.get('session').user.id, now: options.now() }); return c.redirect(`/staff/quotes/${created}`, 303); }
+    catch (err) { if (!(err instanceof DomainError)) throw err; return page(c, <QuoteBuilderPage ctx={ctx} viewer={sessionViewer(c)} enquiryId={id} versions={listLiveVersions(db)} defaults={defaults} error={err.message} />, DOMAIN_STATUS[err.code]); }
+  });
+  staff.get('/quotes/:id', (c) => {
+    const row = getQuote(db, quoteId(c.req.param('id')));
+    return row ? page(c, <StaffQuotePage ctx={ctx} viewer={sessionViewer(c)} row={row} />) : message(c, 404, 'Quote not found', 'That quote does not exist.', sessionViewer(c));
+  });
+  staff.post('/quotes/:id/approve', async (c) => {
+    const id = quoteId(c.req.param('id'));
+    const row = getQuote(db, id);
+    if (!row) return message(c, 404, 'Quote not found', 'That quote does not exist.', sessionViewer(c));
+    const body = await c.req.parseBody();
+    if (text(body, 'review') !== 'yes') return page(c, <StaffQuotePage ctx={ctx} viewer={sessionViewer(c)} row={row} error="Review and confirm the fare before approval." />, 422);
+    try { approvePackageQuote(db, id, c.get('session').user.id); return c.redirect(`/staff/quotes/${id}`, 303); }
+    catch (err) { if (!(err instanceof DomainError)) throw err; return page(c, <StaffQuotePage ctx={ctx} viewer={sessionViewer(c)} row={row} error={err.message} />, DOMAIN_STATUS[err.code]); }
+  });
+  staff.post('/quotes/:id/record', (c) => {
+    const id = quoteId(c.req.param('id'));
+    const row = getQuote(db, id);
+    if (!row) return message(c, 404, 'Quote not found', 'That quote does not exist.', sessionViewer(c));
+    try { recordPackageQuote(db, id, c.get('session').user.id); return c.redirect(`/staff/quotes/${id}`, 303); }
+    catch (err) { if (!(err instanceof DomainError)) throw err; return page(c, <StaffQuotePage ctx={ctx} viewer={sessionViewer(c)} row={row} error={err.message} />, DOMAIN_STATUS[err.code]); }
+  });
 
   const replyInput = (body: Record<string, unknown>, id: number) => ({ enquiryId: id, channel: text(body, 'channel'), subject: text(body, 'subject'), body: text(body, 'body') });
 

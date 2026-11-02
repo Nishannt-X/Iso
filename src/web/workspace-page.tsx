@@ -3,6 +3,7 @@ import type { Channel } from '../domain/enquiries.js';
 import { suggestedReply, type Analysis } from '../domain/analysis.js';
 import { SETTABLE_STATUSES, STATUS_LABEL, TRIAGE_LIMITS, type Workspace } from '../domain/triage.js';
 import type { StaffUser } from '../domain/staff.js';
+import type { StoredQuote } from '../domain/package-quotes.js';
 import { formatInr, formatReceived, pluralise } from './format.js';
 import { packagePath, type PageContext } from './pages.js';
 import { CsrfField, partyText, SlaCell, StaffShell, StatusChip, type Viewer } from './staff-pages.js';
@@ -32,6 +33,7 @@ export interface WorkspaceView {
   saved?: string;
   retained?: Retained;
   analysis: Analysis | null;
+  quotes: StoredQuote[];
 }
 
 /** Keys accepted in the ?done= parameter after a successful change, with the sentence shown for each. */
@@ -232,6 +234,7 @@ export function WorkspacePage(v: WorkspaceView) {
 
         <div class="ws-grid">
           <div>
+            <section class="panel" aria-labelledby="quotes-title"><h2 id="quotes-title">Quotes</h2><p class="hint">Build from a published package. Each quote keeps its own price snapshot and requires approval before sharing.</p><p><a class="btn secondary" href={`/staff/quotes/new?enquiry=${e.id}`}>Build a quote</a></p>{v.quotes.length ? <ul class="cms-list">{v.quotes.map((q) => <li><a href={`/staff/quotes/${q.id}`}>Quote #{q.id} · {q.snapshot.title}</a><span class="chip">{q.status === 'mock_recorded' ? 'Mock sent' : q.status}</span></li>)}</ul> : <p class="empty-state">No quotes yet.</p>}</section>
             <section class="panel" aria-labelledby="orig-title">
               <h2 id="orig-title">Original enquiry</h2>
               <p class="hint">Exactly as the traveller sent it. It is a permanent record and cannot be edited.</p>

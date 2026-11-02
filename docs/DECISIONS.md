@@ -142,3 +142,10 @@
 - **Consequences:** This editor supports Markdown formatting rather than WYSIWYG. The article image library is limited to bundled photographs. Article edits keep the published version live until admin approval. Client editorial and SEO copy still need review before a real launch.
 - **Decided by:** agent (Builder) · **Related:** `feat/kochi-tours-core`
 
+## 2026-11-02 · Approved quote snapshots and shareable PDF
+- **Status:** accepted
+- **Context:** The full brief asks consultants to build a quote from a package and share a branded PDF and link. Its sample prices lack GST, child fare and single supplement rules.
+- **Decision:** Calculate from a published package version with the existing deterministic pricing engine, then store the exact fare result and package identity as a snapshot. Staff review and approve before the random-token public link and PDF become available. A separate action records a mock send; no message transport runs. Partial estimates explicitly list missing rules and never claim a final amount. The PDF uses `INR` because its bundled standard font does not contain the rupee symbol; the web view uses ₹.
+- **Consequences:** Old quotes do not change when package prices change. The link is a bearer link with no expiry; it contains party size and fare but no traveller name or contact, and is marked noindex/no-store. Company A must confirm tax and child policies before calling a partial estimate a final quote.
+- **Decided by:** agent (Builder) · **Related:** `feat/kochi-tours-core`
+

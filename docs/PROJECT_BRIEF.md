@@ -27,7 +27,7 @@ The owner expanded scope to the full selected brief after S4. Work remains on `f
 | S4 | Screens 5–6 (staff login, inbox), sessions, CSRF, role checks | this branch |
 | S5 | AI extraction (live Google Gemini API, labelled rules fallback), ranking, drafting, price guard, screen 7 | this branch; live path awaits a private key for verification |
 | S6 | Screen 8 (package editor, optimistic lock, publish, restore, history, preview) | this branch |
-| S7 | Full MUST HAVE depth: destination/search/map, blog CMS, package scheduling/duplication, quote PDF/link, additional enquiry channels and editor role | search, duplication, scheduling, journal CMS and editor role on this branch; remainder planned |
+| S7 | Full MUST HAVE depth: destination/search/map, blog CMS, package scheduling/duplication, quote PDF/link, additional enquiry channels and editor role | search, duplication, scheduling, journal CMS, editor role and quote PDF/link on this branch; remainder planned |
 | S8 | States, phone and accessibility pass, performance, screenshots | planned |
 | S9 | TDD, `deployment.md`, DECISIONS, rubric, ZIP | planned |
 
@@ -65,6 +65,7 @@ The brief is in [`docs/CLIENT_BRIEF.md`](CLIENT_BRIEF.md). Everything in this ta
 | A15 | **Privacy and consent text is a draft** written by this build. The brief says traveller data is personal data under the DPDP Act 2023 and WhatsApp follow-ups need consent, and gives no wording, retention period or contact. Company A must supply or approve them. |
 | A16 | **Sample enquiry.** The brief's message is seeded verbatim against PKG-KL-07. The name and `.invalid` email are synthetic. Only adults (2) and children (1), which the form requires, are structured; its budget, destination and "December" are not turned into fields. |
 | A17 | **Spam limits** (20 attempts per 10 minutes, 5 enquiries per hour per client, 300 per hour overall) and the 10-minute duplicate window are this build's choices, not the brief's. |
+| A18 | **Quote approval and sharing.** The brief asks for a PDF and link but gives no expiry or workflow rule. This build uses a 192-bit bearer link with no expiry and requires a staff review checkbox before sharing. The public quote omits traveller identity. Partial estimates may be approved only with their missing rules conspicuously disclosed; a mock-send action records intent but sends no message. |
 
 ## Stack & constraints
 - Language / framework / runtime: TypeScript on Node 22 (`>=22.13`), Hono with JSX server rendering, SQLite via the built-in `node:sqlite` (experimental in Node 22), `node:test`.
