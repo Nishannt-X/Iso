@@ -4,6 +4,7 @@ import { createApp } from '../src/app.js';
 import { initSchema, openDb } from '../src/db/db.js';
 import { resetDatabase } from '../src/db/seed.js';
 import { createPackage, getDraftForPackage, getLiveVersionBySlug, publish, restoreVersion, saveDraft, type VersionContent } from '../src/domain/packages.js';
+import { PHOTOS } from '../src/domain/photos.js';
 import { HomePage, PackagePage } from '../src/web/pages.js';
 
 const SITE = 'https://tours.example';
@@ -55,22 +56,54 @@ describe('GET / (home and package list)', () => {
     assert.match(body, /<meta name="description" content="[^"]+"/);
     assert.ok(body.includes(`<link rel="canonical" href="${SITE}/"`));
     assert.match(body, /<h1[^>]*>[^<]+<\/h1>/);
-    assert.match(body, /class="hero[^"]*"/);
+    assert.match(body, /class="cover"/);
     assert.ok(body.includes('CC BY 2.0'));
     assert.ok(body.includes('via Wikimedia Commons'));
   });
 
-  test('credits the author, licence and Commons page beside every package thumbnail', async () => {
+  test('every photo on the page is credited on the page: author, licence link and Commons page', async () => {
     const body = await text(await app.request('/'));
-    const rows = body.split('<li class="row">').slice(1).map((r) => r.split('</li>')[0] ?? '');
-    const withPhoto = rows.filter((r) => r.includes('<img '));
-    assert.ok(withPhoto.length > 0);
-    for (const row of withPhoto) {
-      const caption = /<figcaption class="credit-below">(.*?)<\/figcaption>/s.exec(row)?.[1] ?? '';
-      assert.match(caption, /Photo: [^<]+,/);
-      assert.match(caption, /<a href="https:\/\/[^"]+" rel="noopener noreferrer">CC BY[^<]*<\/a>/);
-      assert.match(caption, /<a href="https:\/\/commons\.wikimedia\.org\/[^"]+" rel="noopener noreferrer">via Wikimedia Commons<\/a>/);
+    const shown = [...body.matchAll(/<img [^>]*?src="\/assets\/images\/([a-z0-9-]+)-900\.jpg"/g)].map((m) => m[1]);
+    assert.ok(shown.length >= 3, 'hero plus theme photos');
+    for (const id of new Set(shown)) {
+      const photo = PHOTOS[id as keyof typeof PHOTOS];
+      assert.ok(photo, id);
+      assert.ok(body.includes(photo.author), `${id} author`);
+      assert.ok(body.includes(`<a href="${photo.licenceUrl}" rel="noopener noreferrer">${photo.licence}</a>`), `${id} licence link`);
+      assert.ok(body.includes(`<a href="${photo.sourceUrl.replaceAll('&', '&amp;')}" rel="noopener noreferrer">via Wikimedia Commons</a>`), `${id} Commons link`);
     }
+  });
+
+  test('every internal link and anchor on the page resolves', async () => {
+    const body = await text(await app.request('/'));
+    const hrefs = [...body.matchAll(/ href="([^"]+)"/g)].map((m) => m[1]!.replaceAll('&amp;', '&'));
+    const internal = [...new Set(hrefs.filter((h) => h.startsWith('/') && !h.startsWith('//')))];
+    assert.ok(internal.length >= 8);
+    for (const href of internal) {
+      if (href.startsWith('/#')) {
+        assert.ok(body.includes(` id="${href.slice(2)}"`), `anchor ${href}`);
+        continue;
+      }
+      assert.equal((await app.request(href)).status, 200, href);
+    }
+    for (const id of [...body.matchAll(/ href="#([^"]+)"/g)].map((m) => m[1])) assert.ok(body.includes(` id="${id}"`), `#${id}`);
+  });
+
+  test('groups journeys by theme and says what the rule styles mean', async () => {
+    const body = await text(await app.request('/'));
+    for (const title of ['On the water', 'Heritage and culture', 'Hills and wildlife', 'Coast and wellness']) assert.ok(body.includes(`>${title}</h2>`), title);
+    assert.ok(body.includes('Solid rule: price from Company A'));
+    assert.ok(body.includes('Dashed rule: demo package with placeholder content.'));
+    assert.match(body, /<li class="trip" data-origin="brief">/);
+    assert.match(body, /<li class="trip" data-origin="synthetic">/);
+  });
+
+  test('states the catalogue facts from the data and nothing the data lacks', async () => {
+    const body = await text(await app.request('/'));
+    assert.match(body, /<dt>Journeys<\/dt><dd class="num">6<\/dd>/);
+    assert.match(body, /<dt>Length<\/dt><dd class="num">4 to 8 days<\/dd>/);
+    assert.match(body, /<dt>Fares from<\/dt><dd class="num">₹14,000<\/dd>/);
+    assert.ok(!/testimonial|rated|award|chauffeur|handpicked|honeymoon packages/i.test(body));
   });
 
   test('shows an empty state when nothing is published', async () => {
@@ -175,7 +208,9 @@ describe('GET /packages/:slug (package detail)', () => {
     assert.ok(detail.includes('Hotel category not listed'));
     assert.ok(detail.includes('Not listed yet'));
     assert.ok(!detail.includes('class="hero'));
-    assert.match(HomePage({ packages: [bare], origins: new Map(), ctx: { siteUrl: SITE } }).toString(), /Photo to come/);
+    const home = HomePage({ packages: [bare], origins: new Map(), ctx: { siteUrl: SITE } }).toString();
+    assert.ok(home.includes('BARE-1') && home.includes('Price to be confirmed') && home.includes('Stay category not listed'));
+    assert.ok(!home.includes('Fares from'), 'no lowest fare is claimed when no package has a price');
   });
 });
 

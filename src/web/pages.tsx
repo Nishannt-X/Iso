@@ -1,8 +1,9 @@
 import { HOME_HERO, photosFor } from '../domain/photos.js';
 import type { DataOrigin, PackageVersion } from '../domain/packages.js';
 import { Credit, Layout, Picture, SITE_NAME, type PageMeta } from './layout.js';
-import { cleanSummary, duration, formatInr, fromPrice, GST_NOTE, metaDescription, PRICE_BASIS, seasonDates, starLabel } from './format.js';
+import { cleanSummary, duration, formatInr, fromPrice, GST_NOTE, metaDescription, PRICE_BASIS, pluralise, seasonDates, starLabel } from './format.js';
 import { STAFF_CSS } from './staff-styles.js';
+import { groupByTheme, themePhoto, type ThemeGroup } from './themes.js';
 
 // Server-rendered public pages. JSX output is escaped by Hono; nothing here builds HTML from strings.
 
@@ -63,6 +64,80 @@ function PackageRow({ v, origin }: { v: PackageVersion; origin: DataOrigin | und
   );
 }
 
+function Journey({ v, origin }: { v: PackageVersion; origin: DataOrigin | undefined }) {
+  const stars = starLabel(v.starRating);
+  return (
+    <li class="trip" data-origin={origin}>
+      <p class="cell code num"><span class="legend">Code</span>{v.packageCode}</p>
+      <div class="cell what">
+        <h3><a href={packagePath(v.packageSlug)}>{v.title}</a></h3>
+        <p class="route">{v.destinations.join(' · ')}</p>
+        <p class="summary">{cleanSummary(v.summary)}</p>
+        <DemoLabel origin={origin} />
+      </div>
+      <p class="cell len">
+        <span class="legend">Length</span>
+        <span>{duration(v)}</span>
+        <span class="sub">{stars ? `${stars} stays` : 'Stay category not listed'}</span>
+      </p>
+      <div class="cell fare">
+        <span class="legend">Fare</span>
+        <PriceLine seasons={v.seasons} />
+      </div>
+      <p class="cell act"><a class="stub" href={enquirePath(v.packageSlug)}>Enquire<span class="sr"> about {v.title}</span></a></p>
+    </li>
+  );
+}
+
+function ThemeSection({ group, tall, origins }: { group: ThemeGroup<PackageVersion>; tall: boolean; origins: Map<number, DataOrigin> }) {
+  const { theme, items } = group;
+  const photo = theme ? themePhoto(theme) : null;
+  const id = theme ? `theme-${theme.id}` : 'theme-more';
+  return (
+    <section class="theme" aria-labelledby={id}>
+      {photo ? (
+        <figure class={tall ? 'bleed tall' : 'bleed'}>
+          <Picture photo={photo} sizes="100vw" />
+          <figcaption class="credit-strip"><span class="wrap"><Credit photo={photo} /></span></figcaption>
+        </figure>
+      ) : null}
+      <div class="wrap">
+        <div class="theme-head">
+          <h2 id={id}>{theme ? theme.title : 'More journeys'}</h2>
+          {theme ? <p>{theme.blurb}</p> : null}
+        </div>
+        <ul class="board">
+          <li class="board-head" aria-hidden="true">
+            <span>Code</span><span>Journey</span><span>Length</span><span>Fare</span><span />
+          </li>
+          {items.map((v) => (
+            <Journey v={v} origin={origins.get(v.packageId)} />
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+/** Facts about the live packages for the ticket stub. Nothing here is invented: it is counted from the data. */
+function catalogueFacts(packages: PackageVersion[], origins: Map<number, DataOrigin>) {
+  const days = packages.map((v) => v.days);
+  const faresWithOrigin = packages
+    .map((v) => ({ fare: fromPrice(v.seasons), origin: origins.get(v.packageId) }))
+    .filter((x): x is { fare: number; origin: DataOrigin | undefined } => x.fare !== null);
+  const fares = faresWithOrigin.map((x) => x.fare);
+  const [shortest, longest] = [Math.min(...days), Math.max(...days)];
+  const lowestFare = fares.length > 0 ? Math.min(...fares) : null;
+  const lowestItem = lowestFare !== null ? faresWithOrigin.find((x) => x.fare === lowestFare) : null;
+  const isLowestFareSynthetic = lowestItem?.origin === 'synthetic';
+  return {
+    count: packages.length,
+    length: shortest === longest ? pluralise(shortest, 'day') : `${shortest} to ${pluralise(longest, 'day')}`,
+    lowestFare,
+    isLowestFareSynthetic,
+  };
+}
+
 export function HomePage({ packages, origins, ctx }: { packages: PackageVersion[]; origins: Map<number, DataOrigin>; ctx: PageContext }) {
   const meta: PageMeta = {
     title: 'Kerala and South India holiday packages | Kochi Tours',
@@ -71,21 +146,51 @@ export function HomePage({ packages, origins, ctx }: { packages: PackageVersion[
     siteUrl: ctx.siteUrl,
     image: HOME_HERO,
   };
+  const facts = packages.length > 0 ? catalogueFacts(packages, origins) : null;
+  const groups = groupByTheme(packages);
   return (
     <Layout meta={meta} overImage>
-      <section class="hero has-credit" aria-labelledby="home-title">
-        <Picture photo={HOME_HERO} sizes="100vw" eager class="low" />
-        <div class="wrap">
-          <h1 id="home-title">Kerala and South India, from Kochi</h1>
-          <p class="lede">Holiday packages for families, honeymooners and groups, with every day laid out and every price stated per person.</p>
-          <a class="go" href="#packages">See the packages</a>
+      <section class="cover" aria-labelledby="home-title">
+        <div class="cover-photo"><Picture photo={HOME_HERO} sizes="100vw" eager class="low" /></div>
+        <div class="wrap cover-in">
+          <div class="ticket">
+            <div class="ticket-main">
+              <h1 id="home-title">Kerala and South India, from Kochi</h1>
+              <p class="lede">Holiday packages for families, honeymooners and groups, with every day laid out and every price stated per person.</p>
+            </div>
+            <div class="ticket-stub">
+              {facts ? (
+                <dl class="stub-facts">
+                  <div><dt>Journeys</dt><dd class="num">{facts.count}</dd></div>
+                  <div><dt>Length</dt><dd class="num">{facts.length}</dd></div>
+                  {facts.lowestFare !== null ? (
+                    <div>
+                      <dt>Fares from</dt>
+                      <dd class="num">{formatInr(facts.lowestFare)}</dd>
+                      {facts.isLowestFareSynthetic ? (
+                        <span class="stub-demo-tag">Synthetic demo fare</span>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </dl>
+              ) : null}
+              {facts ? (
+                <p class="stub-basis">
+                  {PRICE_BASIS} · {GST_NOTE}
+                  {facts.isLowestFareSynthetic ? ' · lowest fare is from a demo package' : ''}
+                </p>
+              ) : null}
+              <a class="btn" href="#packages">See the journeys</a>
+            </div>
+          </div>
         </div>
-        <p class="credit"><Credit photo={HOME_HERO} /></p>
+        <p class="credit-strip"><span class="wrap"><Credit photo={HOME_HERO} /></span></p>
       </section>
+
       <section class="section" id="packages" aria-labelledby="packages-title">
         <div class="wrap">
           <div class="section-head">
-            <h2 id="packages-title">Packages</h2>
+            <h2 id="packages-title">Journeys</h2>
             {packages.length > 0 ? <p class="count">{packages.length} available</p> : null}
           </div>
           <form action="/packages" method="get" class="package-search"><label for="home-search">Find a place or experience</label><div><input id="home-search" name="q" type="search" maxlength={80} placeholder="Try Munnar or houseboat" /><button class="btn" type="submit">Search</button></div></form>
@@ -96,13 +201,36 @@ export function HomePage({ packages, origins, ctx }: { packages: PackageVersion[
               <p class="notice">
                 Prices are per person on twin sharing. GST is pending: Company A has not yet confirmed whether it is included or how it is charged.
               </p>
-              <ul class="rows">
-                {packages.map((v) => (
-                  <PackageRow v={v} origin={origins.get(v.packageId)} />
-                ))}
-              </ul>
+              <p class="notice rules">
+                <span><span class="rule-sample solid" aria-hidden="true" />Solid rule: price from Company A&rsquo;s brief.</span>
+                <span><span class="rule-sample dashed" aria-hidden="true" />Dashed rule: demo package with placeholder content.</span>
+              </p>
             </>
           )}
+        </div>
+        {groups.map((group, i) => (
+          <ThemeSection group={group} tall={i === 0} origins={origins} />
+        ))}
+      </section>
+
+      <section class="section how" id="how" aria-labelledby="how-title">
+        <div class="wrap">
+          <h2 id="how-title">How it works</h2>
+          <ol class="legs">
+            <li>
+              <span class="leg num">1</span>
+              <div><h3>Choose a journey</h3><p>Every journey lists its days, what is included and what is not, and a price for each season.</p></div>
+            </li>
+            <li>
+              <span class="leg num">2</span>
+              <div><h3>Check what the price means</h3><p>Fares are per person on twin sharing. GST is pending. Rates for children and solo travellers are not listed.</p></div>
+            </li>
+            <li>
+              <span class="leg num">3</span>
+              <div><h3>Send an enquiry</h3><p>Tell us who is travelling, when, and your budget. In this demo build, enquiries are stored in a mock outbox for team review; no live emails or messages are sent.</p></div>
+            </li>
+          </ol>
+          <p class="fineprint">Demo build: an enquiry sent here is saved in a mock outbox, and nothing is sent to any email address or phone.</p>
         </div>
       </section>
     </Layout>
@@ -137,49 +265,70 @@ export function PackagePage({ v, origin, ctx, previewPackageId }: { v: PackageVe
     image: hero,
     noindex: previewPackageId !== undefined,
   };
-  const heading = (
-    <>
-      <h1 id="pkg-title">{v.title}</h1>
-      {v.destinations.length > 0 ? <p class="lede">{v.destinations.join(' · ')}</p> : null}
-    </>
-  );
+
   return (
     <Layout meta={meta} overImage={hero !== null} hasBook extraCss={previewPackageId === undefined ? undefined : STAFF_CSS}>
       {previewPackageId === undefined ? null : <div class="preview-banner" role="status"><strong>Private preview · version {v.versionNo}</strong><span>This draft is not public.</span><a href={`/staff/packages/${previewPackageId}/edit`}>Back to editor</a></div>}
       {hero ? (
         <section class="hero short has-credit" aria-labelledby="pkg-title">
           <Picture photo={hero} sizes="100vw" eager />
-          <div class="wrap">{heading}</div>
+          <div class="wrap">
+            <p class="kicker"><span class="kicker-region">{v.region}</span><span class="sep" aria-hidden="true"> · </span><span class="kicker-code num">{v.packageCode}</span></p>
+            <h1 id="pkg-title">{v.title}</h1>
+            {v.destinations.length > 0 ? <p class="lede">{v.destinations.join(' · ')}</p> : null}
+          </div>
           <p class="credit"><Credit photo={hero} /></p>
         </section>
       ) : (
-        <section class="wrap" aria-labelledby="pkg-title">
-          <div class="message">{heading}</div>
+        <section class="wrap plain-heading" aria-labelledby="pkg-title">
+          <div class="message">
+            <p class="kicker"><span class="kicker-region">{v.region}</span><span class="sep" aria-hidden="true"> · </span><span class="kicker-code num">{v.packageCode}</span></p>
+            <h1 id="pkg-title">{v.title}</h1>
+            {v.destinations.length > 0 ? <p class="lede">{v.destinations.join(' · ')}</p> : null}
+          </div>
         </section>
       )}
+
       <div class="wrap detail">
-        <article>
+        <article class="package-content">
           <p class="lead">{summary}</p>
           <DemoLabel origin={origin} />
+
           <dl class="at-a-glance">
-            <div><dt>Duration</dt><dd>{duration(v)}</dd></div>
-            <div><dt>Stays</dt><dd>{stars ? `${stars} hotels` : 'Hotel category not listed'}</dd></div>
-            <div><dt>Region</dt><dd>{v.region}</dd></div>
-            <div><dt>Package code</dt><dd class="num">{v.packageCode}</dd></div>
+            <div class="glance-item">
+              <dt>Duration</dt>
+              <dd class="glance-value">{duration(v)}</dd>
+            </div>
+            <div class="glance-item">
+              <dt>Stays</dt>
+              <dd class="glance-value">{stars ? `${stars} hotels` : 'Hotel category not listed'}</dd>
+            </div>
+            <div class="glance-item">
+              <dt>Region</dt>
+              <dd class="glance-value">{v.region}</dd>
+            </div>
+            <div class="glance-item">
+              <dt>Package code</dt>
+              <dd class="glance-value num">{v.packageCode}</dd>
+            </div>
           </dl>
 
-          <h2 id="itinerary">Day by day</h2>
-          <ol class="itinerary" aria-labelledby="itinerary">
-            {v.itinerary.map((d) => (
-              <li>
-                <span class="day num">Day {d.day}</span>
-                <div>
-                  <h3>{d.title}</h3>
-                  {d.description ? <p>{d.description}</p> : null}
-                </div>
-              </li>
-            ))}
-          </ol>
+          <section class="detail-section" aria-labelledby="itinerary">
+            <h2 id="itinerary">Day by day</h2>
+            <ol class="itinerary" aria-labelledby="itinerary">
+              {v.itinerary.map((d) => (
+                <li class="itinerary-day">
+                  <div class="day-col">
+                    <span class="day num">Day {d.day}</span>
+                  </div>
+                  <div class="day-body">
+                    <h3>{d.title}</h3>
+                    {d.description ? <p>{d.description}</p> : null}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </section>
 
           {band ? (
             <figure class="band">
@@ -188,63 +337,97 @@ export function PackagePage({ v, origin, ctx, previewPackageId }: { v: PackageVe
             </figure>
           ) : null}
 
-          <h2 id="included">Included and not included</h2>
-          <div class="two-col">
-            <div>
-              <h3>Included</h3>
-              {v.inclusions.length > 0 ? (
-                <ul class="list">{v.inclusions.map((x) => <li>{x}</li>)}</ul>
-              ) : (
-                <p class="fineprint">Not listed yet.</p>
-              )}
+          <section class="detail-section" aria-labelledby="included">
+            <h2 id="included">Included and not included</h2>
+            <div class="two-col">
+              <div class="col-group">
+                <h3>Included</h3>
+                {v.inclusions.length > 0 ? (
+                  <ul class="list inclusions-list">
+                    {v.inclusions.map((x) => (
+                      <li>
+                        <span class="item-icon" aria-hidden="true">✓</span>
+                        <span>{x}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p class="fineprint">Not listed yet.</p>
+                )}
+              </div>
+              <div class="col-group">
+                <h3>Not included</h3>
+                {v.exclusions.length > 0 ? (
+                  <ul class="list exclusions-list">
+                    {v.exclusions.map((x) => (
+                      <li>
+                        <span class="item-icon" aria-hidden="true">—</span>
+                        <span>{x}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p class="fineprint">Not listed yet.</p>
+                )}
+              </div>
             </div>
-            <div>
-              <h3>Not included</h3>
-              {v.exclusions.length > 0 ? (
-                <ul class="list">{v.exclusions.map((x) => <li>{x}</li>)}</ul>
-              ) : (
-                <p class="fineprint">Not listed yet.</p>
-              )}
-            </div>
-          </div>
+          </section>
 
-          <h2 id="stays">Where you stay</h2>
-          <p class="stays">
-            {stars ? `${stars} hotels throughout. ` : 'Hotel category not listed. '}
-            {v.hotelNames?.length ? v.hotelNames.join(' · ') : 'Hotel names are not listed for this package yet.'}
-          </p>
+          <section class="detail-section" aria-labelledby="stays">
+            <h2 id="stays">Where you stay</h2>
+            <p class="stays">
+              {stars ? `${stars} hotels throughout. ` : 'Hotel category not listed. '}
+              {v.hotelNames?.length ? v.hotelNames.join(' · ') : 'Hotel names are not listed for this package yet.'}
+            </p>
+          </section>
 
-          {v.destinations.length ? <section class="route-map" aria-labelledby="route-map-title"><h2 id="route-map-title">Explore the stops on a map</h2><p class="hint">OpenStreetMap opens in a new tab. These links show places, not a promised travel route.</p><ol>{v.destinations.map((place) => <li><a href={mapPath(place)} target="_blank" rel="noopener noreferrer">{place} ↗</a></li>)}</ol></section> : null}
+          {v.destinations.length ? (
+            <section class="route-map" aria-labelledby="route-map-title">
+              <h2 id="route-map-title">Explore the stops on a map</h2>
+              <p class="hint">OpenStreetMap opens in a new tab. These links show places, not a promised travel route.</p>
+              <ol>
+                {v.destinations.map((place) => (
+                  <li>
+                    <a href={mapPath(place)} target="_blank" rel="noopener noreferrer">
+                      {place} ↗
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          ) : null}
 
-          <h2 id="prices">Prices by season</h2>
-          {v.seasons.length === 0 ? (
-            <p class="fineprint">Prices for this package are not published yet.</p>
-          ) : (
-            <>
-              <table class="prices">
-                <caption>All prices are {PRICE_BASIS}. {GST_NOTE}.</caption>
-                <thead>
-                  <tr><th scope="col">Season</th><th scope="col">Travel dates</th><th scope="col">Price</th></tr>
-                </thead>
-                <tbody>
-                  {v.seasons.map((s) => (
-                    <tr>
-                      <th scope="row">{s.name}</th>
-                      <td>{seasonDates(s)}</td>
-                      <td class="num">{formatInr(s.pricePpTwinInr)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <p class="fineprint">
-                GST: pending. Company A has not yet confirmed whether these prices include GST or how it is added.
-              </p>
-              {assumedDates ? (
-                <p class="fineprint">Season dates are given by month. Exact start and end dates are still to be confirmed.</p>
-              ) : null}
-              <p class="fineprint">Rates for children and solo travellers are not listed here.</p>
-            </>
-          )}
+          <section class="detail-section" aria-labelledby="prices">
+            <h2 id="prices">Prices by season</h2>
+            {v.seasons.length === 0 ? (
+              <p class="fineprint">Prices for this package are not published yet.</p>
+            ) : (
+              <>
+                <table class="prices">
+                  <caption>All prices are {PRICE_BASIS}. {GST_NOTE}.</caption>
+                  <thead>
+                    <tr><th scope="col">Season</th><th scope="col">Travel dates</th><th scope="col">Price</th></tr>
+                  </thead>
+                  <tbody>
+                    {v.seasons.map((s) => (
+                      <tr>
+                        <th scope="row">{s.name}</th>
+                        <td>{seasonDates(s)}</td>
+                        <td class="num">{formatInr(s.pricePpTwinInr)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p class="fineprint">
+                  GST: pending. Company A has not yet confirmed whether these prices include GST or how it is added.
+                </p>
+                {assumedDates ? (
+                  <p class="fineprint">Season dates are given by month. Exact start and end dates are still to be confirmed.</p>
+                ) : null}
+                <p class="fineprint">Rates for children and solo travellers are not listed here.</p>
+              </>
+            )}
+          </section>
         </article>
 
         <aside class="book" aria-label="Price and enquiry">

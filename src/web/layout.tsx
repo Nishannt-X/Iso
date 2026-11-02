@@ -81,9 +81,10 @@ export function Layout(props: { meta: PageMeta; overImage?: boolean; hasBook?: b
             <a class="brand" href={props.brandHref ?? '/'}>{SITE_NAME}</a>
             {props.nav ?? (
               <nav aria-label="Primary">
-                <a href="/packages">All packages</a>
+                <a href="/packages">Journeys</a>
                 <a href="/destinations">Destinations</a>
                 <a href="/journal">Journal</a>
+                <a href="/#how">How it works</a>
               </nav>
             )}
           </div>
@@ -93,6 +94,15 @@ export function Layout(props: { meta: PageMeta; overImage?: boolean; hasBook?: b
           props.footer ?? (
             <footer class="site-foot">
               <div class="wrap">
+                <div class="foot-top">
+                  <a class="brand" href="/">{SITE_NAME}</a>
+                  <nav aria-label="Footer">
+                    <a href="/packages">Journeys</a>
+                    <a href="/destinations">Destinations</a>
+                    <a href="/journal">Journal</a>
+                    <a href="/#how">How it works</a>
+                  </nav>
+                </div>
                 <p>
                   Demo build. Package codes, titles, durations, star ratings and the PKG-KL-07 prices come from Company A&rsquo;s brief.
                   Itineraries, inclusions, the other packages and all photography are synthetic or placeholder content.

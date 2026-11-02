@@ -1,4 +1,4 @@
-# Design decisions (public site, slice S2)
+# Design decisions (public site, slice S2 & v2 editorial)
 
 Source of product claims is `docs/CLIENT_BRIEF.md` (DESIGN: minimal, white space, restrained palette, clear type, full-width photography, quiet type, one clear Enquire button on every package). Workflow: `docs/DESIGN_WORKFLOW.md`.
 
@@ -11,13 +11,13 @@ Source of product claims is `docs/CLIENT_BRIEF.md` (DESIGN: minimal, white space
 The Impeccable skill had no PRODUCT.md to load and no one to interview in this non-interactive run, so the direction was inferred from the brief alone. This is stated here instead of being silently assumed.
 
 ## System
-- **World:** backwater light. Cool white ground `#F8F9F7`, ink `#12201D`, muted `#52615D` (6:1 on the ground), hairlines `#DBE1DE`, one teal `#0B5A55` used only for the Enquire button, focus ring, text selection and the browser accent. White on teal is about 8:1.
+- **World:** backwater light & warm cardstock. Warm ivory ground `#FAF8F5`, surface `#FFFFFF`, deep forest ink `#131E1B` (14.8:1 on ground), muted slate `#53625E` (5.8:1 on ground), warm hairlines `#E3DED6`, deep forest green `#0B4E46` (primary button, focus rings, scrollbars), and warm copper `#A45C32` (subtle category tags, section eyebrows, pricing accents). White on forest green is 7.6:1 (WCAG AAA).
 - **Type:** Hanken Grotesk (SIL OFL 1.1, from Google Fonts, self-hosted as two woff2 subsets, 54 KB total; the latin-ext subset carries the ₹ sign). One family; headings at weight 300 with -0.02em tracking, body 17px/1.6, 62–72 characters per line. Tabular numerals for prices. The font was not chosen from Impeccable's "training-data defaults" list.
-- **Layout:** 72rem content width, fluid side padding. Home: full-bleed hero, then package rows (photo 7/12, text 5/12, alternating sides, stacked on phones). Detail: full-bleed hero, then a reading column and a sticky price panel.
-- **One Enquire button:** the price panel is one element. Desktop: sticky right column. Phone: the same element becomes a fixed bottom bar showing "From ₹ …, per person, twin sharing · GST pending" beside the button. There is exactly one `Enquire` link in the markup per package page (tested).
-- **Refused patterns:** eyebrows above headings, icon-card grids, gradient text, emoji or glyph icons, nested cards, decorative shadows, entrance animations.
-- **Motion:** only two transitions: the row photo eases to 1.025× on hover (hover-capable devices only, 600ms ease-out) and the button darkens and presses to 0.98×. All motion is off under `prefers-reduced-motion`.
-- **States:** empty list, 404, 500, no photo ("Photo to come"), no seasons, no star rating, no inclusions all render honestly. Keyboard focus is visible everywhere; a skip link is the first tab stop.
+- **Layout:** 72rem content width, fluid side padding. Home: journey ticket and timetable. Detail: full-bleed hero, structured reading column, and a sticky floating price panel.
+- **One Enquire button:** the price panel is one element. Desktop: sticky floating glass column (`backdrop-filter: blur(12px)`). Phone: the same element becomes a fixed bottom bar showing "From ₹ …, per person, twin sharing · GST pending" beside the button. There is exactly one `Enquire` link in the markup per package page (tested).
+- **Refused patterns:** icon-card grids, gradient text, emoji or decorative glyphs, nested card clutter, decorative drop shadows without elevation rationale, entrance fade animations, blanket body `overflow-x: hidden`.
+- **Motion:** the home ticket settles into place once on load (14px, 800ms ease-out, no fade, content visible throughout); the primary button darkens and presses to 0.98×; the Enquire stub fills on hover. All motion and transitions are disabled under `prefers-reduced-motion: reduce`.
+- **States:** empty list, 404, 500, a package whose tags match no theme (listed under "More journeys", no photo), no seasons, no star rating, no inclusions all render honestly. Keyboard focus is visible everywhere; a skip link is the first tab stop.
 - **Performance choices:** inline CSS (no render-blocking request), font preload, photos in 900px and 2000px widths with `srcset`, explicit `width`/`height` (no layout shift), the single above-the-fold photo is eager and high priority, the rest lazy. Gzip/deflate through Hono `compress`. Measured on localhost only; 4G timing is not verified.
 
 ## Photography and licences
@@ -35,3 +35,29 @@ Desktop 1440×900 and phone 390×844: home, package detail (hero, itinerary, pho
 - **Acknowledgement:** states the facts (reference, package, time in IST, status) and shows the acknowledgement as a quoted block with its channel and the mock-outbox caveat. It shows no contact details.
 - **Checked (Playwright, Chromium):** 390×844 and 1440×900: the form, the error state (focus lands on the summary, entries kept), and the acknowledgement; no horizontal scroll; all 12 controls have labels. Defects found and fixed: every real browser submit was refused with 403 (`Origin: null` under `Referrer-Policy: no-referrer`), and the budget input and select sat at different heights on desktop. Not tested: Safari/Firefox, screen reader, tablet widths, the 429 and 500 pages in a browser (covered by HTTP tests).
 
+## Landing page (v2 slice 1): journey ticket and timetable
+Direction contract and the reviewed deviations are in `.impeccable/surfaces/src-web-pages-tsx.md`; product truth in `PRODUCT.md`. The visitor it leads with is the foreign couple or group planning from abroad (owner's answer).
+- **World:** an Indian Railways reservation ticket and timetable laid over full-bleed credited photography. The home hero is a ticket: headline and lede above a dotted perforation seam with punched notches, and below it a stub of facts counted from the live packages (journeys, shortest to longest stay, lowest fare with its basis, GST pending) and the one primary button. Nothing in the stub is typed in; with no priced package the fare is omitted.
+- **Journeys** are a timetable (code, journey, length, fare, Enquire stub), grouped under four themes derived from package tags (`src/web/themes.ts`: on the water, heritage and culture, hills and wildlife, coast and wellness). A package sits in the first matching theme only; unmatched packages go under "More journeys". The grouping never claims a traveller type, because the data has none (Sol review A, UX-5).
+- **State by line pattern, not colour:** a solid top rule marks a journey priced from the brief, a dashed rule a demo package with placeholder content. A legend on the page says so. The perforation uses dots, so dashes keep one meaning.
+- **One grid-breaking beat:** the first theme's photograph is taller than the others. Each photograph has its credit on a hairline strip directly under it (tested for every image on the page).
+- **Phones:** the photo comes first, its credit directly under it, then the ticket below it, so the ticket never hides the photo and the button is inside the first screen at 390×844. From 40rem up the ticket overlaps the photo.
+- **Trust section:** "How it works" states only things the site already does: what each journey page lists, that fares are per person on twin sharing with GST pending and no child or solo rates. Step 3 is truthfully worded: enquiries in this demo build are stored in a mock outbox for team review; no live emails or messages are sent.
+- **Deferred, on purpose:** the When/Who/Budget planner strip arrives with search in slice 2; shipping fields that do nothing would promise inventory the six packages cannot match (UX-1). Navigation lists only routes that exist (Journeys, How it works); a generic Enquire link cannot exist because `/enquire` needs a package (UX-4, UX-6).
+
+## Package detail page (v2 editorial redesign) & Sol Medium review resolutions
+Following independent Sol Medium review of `d343bd0` (findings P1 and P2), the package detail page was refined to eliminate box/card grid clutter, remove misleading copy, and ensure overflow safety across all mobile and tablet widths:
+- **Palette & Typography:** Warm ivory ground (`#faf8f5`), surface white (`#ffffff`), deep forest ink (`#131e1b`, 14.8:1 contrast on ivory), muted slate (`#53625e`, 5.8:1), forest green action (`#0b4e46`, 7.6:1 with white), and warm copper (`#a45c32`) for quiet kicker tags and section eyebrows. Headings in Hanken Grotesk 300 with -0.02em tracking.
+- **Hero & Provenance:** Full-bleed photograph (`100vw`, responsive 900w/2000w `srcset`) with a subtle multi-stop scrim. Replaced cluttered capsule metadata pills with a quiet kicker `<p class="kicker">Region · Code</p>`. Glass credit badge positioned at bottom right with CC licence and Wikimedia link.
+- **At-a-glance Editorial Summary:** Replaced boxed summary cards with a clean editorial definition list (`.at-a-glance`) using hairlines and balanced 4-column layout on desktop (Duration, Stays, Region, Package code), avoiding orphan row wrapping.
+- **Elimination of Card Clutter (P2 pages.tsx:224/253):** Removed decorative `.col-card`, `.stay-card`, and `.prices-card` wrappers. Replaced with clean typography, hairlines, and whitespace. Purposeful glass is reserved exclusively for the floating price panel (`.book`) where background blur aids legibility over underlying page content.
+- **Public-Copy Truthfulness & Accuracy (P1 pages.tsx:350 & 408,412):**
+  1. Stays lodging claim: Removed unsupported marketing claim `"Verified room categories and service standards confirmed before departure"`. Factually states the star rating and notes that hotel names are not yet assigned.
+  2. Reassurance copy: Omitted `.book-reassurance` section completely ("Instant enquiry acknowledgement" misled because mock outbox sends nothing; "Fixed seasonal rates" implied a guarantee despite pending GST and month-level date boundaries). Price module now displays only the starting fare, per-person twin sharing basis, and GST pending note beside the single Enquire CTA.
+  3. Tests updated in `tests/web/package-detail.test.ts` to assert that misleading copy and unsupported room verification claims are absent.
+- **Responsive Layout & Elimination of Blanket Overflow-x (P2 styles.ts:34):**
+  - Removed blanket `body { overflow-x: hidden }` which concealed layout errors.
+  - Replaced hard-coded widths with fluid containers, clamp-based padding (`--pad: clamp(1rem, 4vw, 3rem)`), and `box-sizing: border-box`.
+  - Verified no horizontal overflow (`docScrollWidth === docClientWidth`, `overflows: []`) across 320px, 360px, 390px, 768px, and 1280px via browser runtime evaluation.
+- **One Strong Enquire CTA:** Floating sticky glass panel on desktop (`backdrop-filter: blur(12px)`); transforms to fixed glass bottom bar on mobile (<62rem) showing starting fare, basis note, and single Enquire link. Exactly 1 Enquire link exists in the document markup per package (tested).
+- **Verification:** All 228 automated tests pass across 54 suites; `npm run typecheck`, `npm run lint`, and `npm run build` are clean. Visual QA completed on desktop (1280px), tablet (768px), and mobile (320px, 360px, 390px) via T3 collaborative browser tools.
