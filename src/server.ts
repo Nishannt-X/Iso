@@ -10,7 +10,7 @@ if (!isInitialised(db)) {
   process.exit(1);
 }
 
-const server = serve({ fetch: createApp(db).fetch, port: config.port }, (info) => {
+const server = serve({ fetch: createApp(db, { siteUrl: config.siteUrl }).fetch, port: config.port }, (info) => {
   console.log(`Kochi Tours listening on http://localhost:${info.port} (db: ${config.dbPath})`);
 });
 

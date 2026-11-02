@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, rmSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { createPackage, publish, type DataOrigin, type VersionContent } from '../domain/packages.js';
+import { createPackage, publish, SYNTHETIC_MARKER, type DataOrigin, type VersionContent } from '../domain/packages.js';
 import { initSchema, isInitialised, openDb, run, type DatabaseSync } from './db.js';
 import type { Season } from '../domain/seasons.js';
 
@@ -20,8 +20,6 @@ const SI12_PRICE_INR = 18750;
 const PEAK = (price: number): Season => ({ name: 'Peak', startMd: '10-01', endMd: '03-31', pricePpTwinInr: price, rangeAssumed: true });
 const MONSOON = (price: number): Season => ({ name: 'Monsoon', startMd: '06-01', endMd: '09-30', pricePpTwinInr: price, rangeAssumed: true });
 
-const SYNTHETIC = '[Synthetic demo content] ';
-
 type Stop = [title: string, description: string];
 
 function pkg(
@@ -30,7 +28,7 @@ function pkg(
 ): VersionContent {
   return {
     title: c.title,
-    summary: SYNTHETIC + c.summary,
+    summary: SYNTHETIC_MARKER + c.summary,
     days: c.stops.length,
     nights: c.nights,
     starRating: c.starRating,

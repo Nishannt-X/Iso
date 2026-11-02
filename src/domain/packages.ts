@@ -9,6 +9,9 @@ import { mdOrdinal, validateSeasons, type Season } from './seasons.js';
 export type VersionStatus = 'draft' | 'published' | 'superseded';
 export type DataOrigin = 'brief' | 'synthetic';
 
+/** Seed summaries start with this marker. Pages strip it and show a visible demo label instead. */
+export const SYNTHETIC_MARKER = '[Synthetic demo content] ';
+
 export interface ItineraryDay {
   day: number;
   title: string;
@@ -186,6 +189,11 @@ export function listLiveVersions(db: DatabaseSync): PackageVersion[] {
 export function getLiveVersionBySlug(db: DatabaseSync, slug: string): PackageVersion | undefined {
   const row = get<VersionRow>(db, `SELECT v.*, p.code, p.slug FROM live_versions v JOIN packages p ON p.id = v.package_id WHERE p.slug = ?`, slug);
   return row && hydrate(db, row);
+}
+
+/** Where each package's content comes from (client brief or synthetic), keyed by package id. */
+export function listDataOrigins(db: DatabaseSync): Map<number, DataOrigin> {
+  return new Map(all<{ id: number; data_origin: DataOrigin }>(db, 'SELECT id, data_origin FROM packages').map((r) => [r.id, r.data_origin]));
 }
 
 export function getDraftForPackage(db: DatabaseSync, packageId: number): PackageVersion | undefined {

@@ -2,6 +2,8 @@
 export interface Config {
   port: number;
   dbPath: string;
+  /** Absolute origin for canonical links, sitemap and robots.txt. */
+  siteUrl: string;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -9,5 +11,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     throw new Error(`PORT must be an integer between 1 and 65535, got "${env.PORT}"`);
   }
-  return { port, dbPath: env.DB_PATH || 'data/kochi-tours.db' };
+  const siteUrl = (env.SITE_URL || `http://localhost:${port}`).replace(/\/+$/, '');
+  let parsed: URL | null = null;
+  try {
+    parsed = new URL(siteUrl);
+  } catch {
+    // reported below
+  }
+  if (!parsed || !/^https?:$/.test(parsed.protocol) || parsed.pathname !== '/') {
+    throw new Error(`SITE_URL must be an http(s) origin such as https://example.com, got "${env.SITE_URL}"`);
+  }
+  return { port, dbPath: env.DB_PATH || 'data/kochi-tours.db', siteUrl };
 }

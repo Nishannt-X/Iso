@@ -1,44 +1,50 @@
+import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 import { Hono } from 'hono';
+import { compress } from 'hono/compress';
+import { secureHeaders } from 'hono/secure-headers';
+import { trimTrailingSlash } from 'hono/trailing-slash';
 import { get, type DatabaseSync } from './db/db.js';
-import { listLiveVersions, type PackageVersion } from './domain/packages.js';
+import { getLiveVersionBySlug, listDataOrigins, listLiveVersions } from './domain/packages.js';
+import { PHOTO_FILE_PATTERN } from './domain/photos.js';
+import { HomePage, MessagePage, PackagePage, packagePath, type PageContext } from './web/pages.js';
 
-// Thin vertical slice (S0+S1): a plain, unstyled list of live packages. Design, detail pages,
-// pricing display and the enquiry flow arrive in later slices. JSX output is escaped by Hono.
+// Public site (slice S2): server-rendered home/list and package detail, plus sitemap, robots and 404.
+// The Enquire button points at /enquire, a placeholder until the enquiry form (S3) exists.
 
-function Home({ packages }: { packages: PackageVersion[] }) {
-  return (
-    <html lang="en">
-      <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Kochi Tours</title>
-      </head>
-      <body>
-        <main>
-          <h1>Kochi Tours</h1>
-          <p>
-            Early build: a plain list of published packages. PKG-KL-07 carries facts from the client brief; the
-            rest, including all itinerary text, is synthetic demo data. Prices are not displayed yet.
-          </p>
-          {packages.length === 0 ? (
-            <p>No packages are published yet.</p>
-          ) : (
-            <ul>
-              {packages.map((p) => (
-                <li>
-                  <strong>{p.packageCode}</strong> {p.title} ({p.days} days / {p.nights} nights, {p.region})
-                </li>
-              ))}
-            </ul>
-          )}
-        </main>
-      </body>
-    </html>
-  );
+export interface AppOptions {
+  /** Absolute origin used in canonical links, the sitemap and robots.txt, e.g. https://example.com */
+  siteUrl?: string;
 }
 
-export function createApp(db: DatabaseSync): Hono {
+const PUBLIC_DIR = fileURLToPath(new URL('./public/', import.meta.url));
+const SLUG = /^[a-z0-9][a-z0-9-]*$/;
+const ASSETS: Record<string, { pattern: RegExp; type: string }> = {
+  images: { pattern: PHOTO_FILE_PATTERN, type: 'image/jpeg' },
+  fonts: { pattern: /^hanken-grotesk-latin(-ext)?\.woff2$/, type: 'font/woff2' },
+};
+
+const doc = (el: { toString(): string }): string => `<!DOCTYPE html>${el.toString()}`;
+const xml = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+export function createApp(db: DatabaseSync, options: AppOptions = {}): Hono {
+  const ctx: PageContext = { siteUrl: (options.siteUrl ?? 'http://localhost:3000').replace(/\/+$/, '') };
   const app = new Hono();
+
+  app.use(compress());
+  app.use(
+    secureHeaders({
+      contentSecurityPolicy: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:'],
+        fontSrc: ["'self'"],
+        frameAncestors: ["'none'"],
+        formAction: ["'self'"],
+      },
+    }),
+  );
+  app.use(trimTrailingSlash());
 
   app.get('/healthz', (c) => {
     try {
@@ -50,11 +56,73 @@ export function createApp(db: DatabaseSync): Hono {
     }
   });
 
-  app.get('/', (c) => c.html(`<!DOCTYPE html>${(<Home packages={listLiveVersions(db)} />).toString()}`));
+  app.get('/', (c) => c.html(doc(<HomePage packages={listLiveVersions(db)} origins={listDataOrigins(db)} ctx={ctx} />)));
+
+  app.get('/packages/:slug', (c) => {
+    const slug = c.req.param('slug');
+    const version = SLUG.test(slug) ? getLiveVersionBySlug(db, slug) : undefined;
+    if (!version) return c.notFound();
+    return c.html(doc(<PackagePage v={version} origin={listDataOrigins(db).get(version.packageId)} ctx={ctx} />));
+  });
+
+  // Placeholder target for every Enquire button until the enquiry form is built (S3).
+  app.get('/enquire', (c) => {
+    const slug = c.req.query('package') ?? '';
+    const version = SLUG.test(slug) ? getLiveVersionBySlug(db, slug) : undefined;
+    return c.html(
+      doc(
+        <MessagePage
+          title="The enquiry form is not live yet"
+          body={
+            version
+              ? `Enquiries for ${version.title} will open in the next release of this demo build. Nothing can be sent from here yet.`
+              : 'Enquiries will open in the next release of this demo build. Nothing can be sent from here yet.'
+          }
+          ctx={ctx}
+          path="/enquire"
+          linkText={version ? 'Back to the package' : 'See all packages'}
+          linkHref={version ? packagePath(version.packageSlug) : '/#packages'}
+        />,
+      ),
+    );
+  });
+
+  app.get('/assets/:dir/:file', async (c) => {
+    const rule = ASSETS[c.req.param('dir')];
+    const file = c.req.param('file');
+    if (!rule || !rule.pattern.test(file)) return c.notFound();
+    try {
+      const body = await readFile(`${PUBLIC_DIR}${c.req.param('dir')}/${file}`);
+      return c.body(new Uint8Array(body), 200, { 'Content-Type': rule.type, 'Cache-Control': 'public, max-age=604800' });
+    } catch {
+      return c.notFound();
+    }
+  });
+
+  app.get('/sitemap.xml', (c) => {
+    const urls = [
+      { loc: `${ctx.siteUrl}/`, lastmod: null as string | null },
+      ...listLiveVersions(db).map((v) => ({ loc: `${ctx.siteUrl}${packagePath(v.packageSlug)}`, lastmod: v.publishedAt })),
+    ];
+    const body = urls
+      .map((u) => `  <url><loc>${xml(u.loc)}</loc>${u.lastmod ? `<lastmod>${xml(u.lastmod.slice(0, 10))}</lastmod>` : ''}</url>`)
+      .join('\n');
+    return c.body(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`, 200, {
+      'Content-Type': 'application/xml; charset=utf-8',
+    });
+  });
+
+  app.get('/robots.txt', (c) =>
+    c.text(`User-agent: *\nAllow: /\nDisallow: /enquire\n\nSitemap: ${ctx.siteUrl}/sitemap.xml\n`),
+  );
+
+  app.notFound((c) =>
+    c.html(doc(<MessagePage title="Page not found" body="That page does not exist, or the package is no longer available." ctx={ctx} path={c.req.path} />), 404),
+  );
 
   app.onError((err, c) => {
     console.error('unhandled error:', err instanceof Error ? err.message : err);
-    return c.text('Something went wrong. Please try again.', 500);
+    return c.html(doc(<MessagePage title="Something went wrong" body="Something went wrong. Please try again in a moment." ctx={ctx} path={c.req.path} linkText="Back to the home page" linkHref="/" />), 500);
   });
 
   return app;
