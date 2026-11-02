@@ -42,7 +42,7 @@ export function StaffShell(props: { ctx: PageContext; viewer: Viewer | null; tit
       {viewer.role === 'admin' ? <a href="/staff/packages" aria-current={props.section === 'packages' ? 'page' : undefined}>Packages</a> : null}
       {viewer.role !== 'agent' ? <a href="/staff/blogs" aria-current={props.section === 'blogs' ? 'page' : undefined}>Journal</a> : null}
       {viewer.role === 'admin' ? <a href="/staff/activity" aria-current={props.section === 'activity' ? 'page' : undefined}>Activity</a> : null}
-      <a href="/" target="_blank" rel="noopener">Public site ↗</a>
+      <a href="/" target="_blank" rel="noopener" style="font-weight:600;color:var(--forest);text-decoration:none;padding:.3rem .75rem;border:1px solid var(--forest);border-radius:4px;">Main customer site ↗</a>
       <span class="who">{viewer.name} · {ROLE_LABEL[viewer.role]}</span>
       <form method="post" action="/staff/logout">
         <CsrfField token={viewer.csrfToken} />
@@ -51,7 +51,9 @@ export function StaffShell(props: { ctx: PageContext; viewer: Viewer | null; tit
     </nav>
   ) : (
     <nav class="staff-nav" aria-label="Staff">
-      <a href="/">← Public site</a>
+      <a href="/" style="display:inline-flex;align-items:center;gap:.4rem;padding:.45rem 1rem;border-radius:9999px;background:var(--forest);color:#ffffff;font-size:.875rem;font-weight:600;text-decoration:none;">
+        ← Main Customer Page
+      </a>
     </nav>
   );
   return (
@@ -82,11 +84,16 @@ export function LoginPage(props: { ctx: PageContext; error?: string; email?: str
     <StaffShell ctx={props.ctx} viewer={null} title={props.error ? 'Error: Sign in' : 'Sign in'} path="/staff/login">
       <div class="wrap">
         <div class="login">
-          <p class="login-back" style="margin-bottom:1.5rem;">
-            <a href="/" class="link back" style="display:inline-flex;align-items:center;gap:.35rem;font-size:.9375rem;color:var(--forest);text-decoration:none;font-weight:500;">
-              ← Back to public website
+          <div style="background:#e6f1ef;border:1.5px solid #0b4e46;border-radius:8px;padding:1.1rem 1.25rem;margin-bottom:1.75rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+            <div>
+              <strong style="display:block;color:#073832;font-size:1rem;margin-bottom:.2rem;">Looking for tour packages or bookings?</strong>
+              <span style="color:#53625e;font-size:.875rem;">You are on the staff sign-in portal. Travellers do not need to sign in.</span>
+            </div>
+            <a href="/" class="btn" style="background:#0b4e46;color:#ffffff;text-decoration:none;padding:.6rem 1.25rem;border-radius:6px;font-size:.9375rem;font-weight:600;white-space:nowrap;display:inline-flex;align-items:center;gap:.4rem;">
+              Go to Main Customer Page →
             </a>
-          </p>
+          </div>
+
           <h1>Staff sign in</h1>
           <p class="lede">For Company A consultants and admins.</p>
           {props.error ? (
@@ -107,9 +114,13 @@ export function LoginPage(props: { ctx: PageContext; error?: string; email?: str
             </div>
             <button class="btn" type="submit">Sign in</button>
           </form>
-          <div class="login-foot" style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--line);font-size:.875rem;">
-            <a href="/" class="link">← Return to public website</a>
+
+          <div class="login-foot" style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:.75rem;">
+            <a href="/" style="display:inline-flex;align-items:center;justify-content:center;gap:.5rem;padding:.75rem 1rem;background:var(--surface);border:1.5px solid var(--forest);color:var(--forest);border-radius:6px;font-weight:600;text-decoration:none;font-size:.9375rem;">
+              ← Back to Main Customer Page (Journeys &amp; Itineraries)
+            </a>
           </div>
+
           <p class="demo-note">
             Demo build with synthetic staff accounts. The README lists the demo sign-ins. Nothing done here is sent to any real traveller.
           </p>

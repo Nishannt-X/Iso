@@ -251,3 +251,4 @@ The codebase adheres strictly to the project quality gate:
 - **Typecheck:** Clean run with 0 errors via `npm run typecheck` (`tsc --noEmit`).
 - **Linting:** 0 errors and 0 warnings via `npm run lint` (`eslint .`).
 - **Test Suite:** **366 / 366 tests passing (0 failures, 86 suites)** via `node:test` (`npm test`), verifying schema triggers, pricing math, optimistic concurrency, CSRF mitigation, AI extraction guardrails, and role-based access control.
+

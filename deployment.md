@@ -112,3 +112,4 @@ A production-ready, multi-stage `Dockerfile` is provided in the repository.
 | `TRUST_PROXY` | Optional | `0` (off) | Set to `1` when running behind a reverse proxy (e.g., Cloudflare, NGINX, AWS ALB) to trust the immediate upstream client IP for rate limiting. |
 | `DEMO_STAFF_PASSWORD` | Optional | *(None)* | Sets the initial password for seeded demo accounts during database reset. Forbidden on public/production domains unless intended for reviewers. |
 | `GEMINI_API_KEY` | Optional | *(None)* | Google Gemini API key used by the AI extraction and triage service. When omitted, the app operates gracefully via its deterministic local rules engine. |
+
