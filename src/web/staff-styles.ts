@@ -30,14 +30,14 @@ export const STAFF_CSS = `
 .tabs a:hover{border-bottom-color:var(--line)}
 .tabs a[aria-current=page]{border-bottom-color:var(--teal);font-weight:500}
 .tabs .n{color:var(--muted);font-variant-numeric:tabular-nums}
-.filters{display:grid;gap:.75rem 1rem;margin-top:1.25rem;grid-template-columns:1fr}
+.filters{display:grid;gap:.75rem 1rem;margin-top:1.25rem;grid-template-columns:minmax(0,1fr)}
 @media(min-width:48rem){.filters{grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) auto;align-items:end}}
 .filters .field{margin:0}
 .filters .actions{display:flex;gap:1rem;align-items:center;min-height:3rem}
 .filters .btn{min-height:3rem}
 .legend{margin-top:1rem;color:var(--muted);font-size:.875rem;max-width:46rem}
 .queue{margin-top:1rem;border-top:1px solid var(--line)}
-.q-row{display:grid;gap:.5rem 1.5rem;padding:1rem .25rem;border-bottom:1px solid var(--line);text-decoration:none;color:inherit;grid-template-columns:1fr}
+.q-row{display:grid;gap:.5rem 1.5rem;padding:1rem .25rem;border-bottom:1px solid var(--line);text-decoration:none;color:inherit;grid-template-columns:minmax(0,1fr)}
 .q-row:hover{background:var(--surface)}
 .q-row:focus-visible{outline-offset:-2px}
 @media(min-width:56rem){.q-row{grid-template-columns:10rem minmax(0,1fr) 12rem 12rem;align-items:start;padding-inline:.75rem}}
@@ -73,21 +73,21 @@ export const STAFF_CSS = `
 .ws-sub{margin-top:.5rem;color:var(--muted);font-size:.9375rem}
 .ws-state{display:flex;flex-wrap:wrap;gap:.5rem 1.25rem;align-items:center;margin-top:1rem}
 .ws-state .sla-text{font-size:.9375rem}
-.handle{display:grid;gap:1rem 2rem;margin-top:1.5rem;padding:1.25rem;border:1px solid var(--line);background:var(--surface)}
+.handle{display:grid;grid-template-columns:minmax(0,1fr);gap:1rem 2rem;margin-top:1.5rem;padding:1.25rem;border:1px solid var(--line);background:var(--surface)}
 @media(min-width:48rem){.handle{grid-template-columns:1fr 1fr}}
 .handle h2{font-size:1rem;font-weight:500;letter-spacing:0;margin-bottom:.5rem}
 .inline-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.5rem;align-items:end}
 .inline-form .field{margin:0}
 .inline-form .btn{min-height:3rem}
-@media(max-width:30rem){.inline-form{grid-template-columns:1fr}.inline-form .btn{width:100%}}
-.ws-grid{display:grid;gap:1.5rem 2rem;margin-top:1.5rem}
+@media(max-width:30rem){.inline-form{grid-template-columns:minmax(0,1fr)}.inline-form .btn{width:100%}}
+.ws-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:1.5rem 2rem;margin-top:1.5rem}
 @media(min-width:64rem){.ws-grid{grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);align-items:start}}
 .panel{border:1px solid var(--line);background:var(--surface);padding:1.25rem 1.5rem;margin-bottom:1.25rem}
 .panel>h2{font-size:1.125rem;font-weight:500;letter-spacing:0;line-height:1.3}
 .panel>.hint{margin-top:.25rem}
 .orig{margin:1rem 0 0;padding:.25rem 0 .25rem 1rem;border-left:3px solid var(--teal);white-space:pre-wrap;overflow-wrap:anywhere;font-size:1.0625rem;max-width:42rem}
 .orig.none{color:var(--muted);white-space:normal}
-.fields{margin-top:1rem;display:grid;grid-template-columns:1fr}
+.fields{margin-top:1rem;display:grid;grid-template-columns:minmax(0,1fr)}
 .fields div{display:grid;gap:.1rem 1.5rem;padding:.6rem 0;border-bottom:1px solid var(--line)}
 .fields div:last-child{border-bottom:0}
 @media(min-width:40rem){.fields div{grid-template-columns:11rem minmax(0,1fr)}}
