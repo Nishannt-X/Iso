@@ -2,8 +2,8 @@
 // Wikimedia Commons, fetched on 2026-11-02, resized to two widths and credited beside each use.
 // These are NOT Company A's photographs. Company A must supply licensed images before launch.
 //
-// ponytail: the photo-to-package mapping lives here, in code, keyed by package code. Ceiling: staff cannot
-// change it. Upgrade path: a media table and an image picker in the package editor (slice S6).
+// Legacy seed packages use the mapping below. New drafts can choose photos from this credited library;
+// each choice is stored with the package version so published imagery remains stable.
 
 export interface Photo {
   id: string;
@@ -132,9 +132,11 @@ const BY_PACKAGE: Record<string, { hero: PhotoId; band?: PhotoId }> = {
 };
 
 /** Photos for a package, or nulls when none is assigned. Pages must cope with both. */
-export function photosFor(packageCode: string): { hero: Photo | null; band: Photo | null } {
+export function photosFor(packageCode: string, heroPhotoId?: PhotoId | null, bandPhotoId?: PhotoId | null): { hero: Photo | null; band: Photo | null } {
   const entry = BY_PACKAGE[packageCode];
-  return { hero: entry ? PHOTOS[entry.hero] : null, band: entry?.band ? PHOTOS[entry.band] : null };
+  const hero = heroPhotoId === undefined ? entry?.hero : heroPhotoId;
+  const band = bandPhotoId === undefined ? entry?.band : bandPhotoId;
+  return { hero: hero ? PHOTOS[hero] : null, band: band ? PHOTOS[band] : null };
 }
 
 /** The photo used on the home page hero. */

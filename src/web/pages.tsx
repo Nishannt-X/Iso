@@ -12,6 +12,18 @@ export interface PageContext {
 
 export const packagePath = (slug: string): string => `/packages/${slug}`;
 export const enquirePath = (slug: string): string => `/enquire?package=${encodeURIComponent(slug)}`;
+export const destinationSlug = (name: string): string => name.toLocaleLowerCase('en-IN').normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+export const destinationPath = (name: string): string => `/destinations/${destinationSlug(name)}`;
+const mapPath = (name: string): string => `https://www.openstreetmap.org/search?query=${encodeURIComponent(`${name}, India`)}`;
+
+export function DestinationIndexPage({ packages, ctx }: { packages: PackageVersion[]; ctx: PageContext }) {
+  const names = [...new Set(packages.flatMap((p) => p.destinations))].sort((a, b) => a.localeCompare(b));
+  return <Layout meta={{ title: 'Destinations | Kochi Tours', description: 'Find tours by place across Kerala and South India.', path: '/destinations', siteUrl: ctx.siteUrl }}><section class="section"><div class="wrap"><p class="eyebrow">Places</p><h1>Travel by destination</h1><p class="lede">Choose a place, then see the journeys that include it.</p>{names.length ? <ul class="destination-grid">{names.map((name) => <li><a href={destinationPath(name)}><strong>{name}</strong><span>{packages.filter((p) => p.destinations.includes(name)).length} journeys →</span></a></li>)}</ul> : <p class="empty">No destinations are published yet.</p>}</div></section></Layout>;
+}
+
+export function DestinationPage({ name, packages, origins, ctx }: { name: string; packages: PackageVersion[]; origins: Map<number, DataOrigin>; ctx: PageContext }) {
+  return <Layout meta={{ title: `${name} tours | Kochi Tours`, description: `Published holiday packages that include ${name}.`, path: destinationPath(name), siteUrl: ctx.siteUrl }}><section class="section"><div class="wrap"><a class="link back" href="/destinations">All destinations</a><p class="eyebrow">Destination</p><h1>{name}</h1><p class="lede">Journeys that include {name}. Compare each itinerary, hotel category and seasonal price.</p><p class="map-action"><a class="link" href={mapPath(name)} target="_blank" rel="noopener noreferrer">Open {name} on OpenStreetMap ↗</a></p><ul class="rows">{packages.map((p) => <PackageRow v={p} origin={origins.get(p.packageId)} />)}</ul></div></section></Layout>;
+}
 
 function PriceLine({ seasons }: { seasons: PackageVersion['seasons'] }) {
   const from = fromPrice(seasons);
@@ -30,7 +42,7 @@ function DemoLabel({ origin }: { origin: DataOrigin | undefined }) {
 }
 
 function PackageRow({ v, origin }: { v: PackageVersion; origin: DataOrigin | undefined }) {
-  const { hero } = photosFor(v.packageCode);
+  const { hero } = photosFor(v.packageCode, v.heroPhotoId, v.bandPhotoId);
   const stars = starLabel(v.starRating);
   return (
     <li class="row">
@@ -112,7 +124,7 @@ export function PackageSearchPage({ packages, origins, ctx, query }: { packages:
 }
 
 export function PackagePage({ v, origin, ctx, previewPackageId }: { v: PackageVersion; origin: DataOrigin | undefined; ctx: PageContext; previewPackageId?: number }) {
-  const { hero, band } = photosFor(v.packageCode);
+  const { hero, band } = photosFor(v.packageCode, v.heroPhotoId, v.bandPhotoId);
   const stars = starLabel(v.starRating);
   const from = fromPrice(v.seasons);
   const summary = cleanSummary(v.summary);
@@ -199,8 +211,10 @@ export function PackagePage({ v, origin, ctx, previewPackageId }: { v: PackageVe
           <h2 id="stays">Where you stay</h2>
           <p class="stays">
             {stars ? `${stars} hotels throughout. ` : 'Hotel category not listed. '}
-            Hotel names are not listed for this package yet.
+            {v.hotelNames?.length ? v.hotelNames.join(' · ') : 'Hotel names are not listed for this package yet.'}
           </p>
+
+          {v.destinations.length ? <section class="route-map" aria-labelledby="route-map-title"><h2 id="route-map-title">Explore the stops on a map</h2><p class="hint">OpenStreetMap opens in a new tab. These links show places, not a promised travel route.</p><ol>{v.destinations.map((place) => <li><a href={mapPath(place)} target="_blank" rel="noopener noreferrer">{place} ↗</a></li>)}</ol></section> : null}
 
           <h2 id="prices">Prices by season</h2>
           {v.seasons.length === 0 ? (

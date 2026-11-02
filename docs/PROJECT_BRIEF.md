@@ -27,7 +27,7 @@ The owner expanded scope to the full selected brief after S4. Work remains on `f
 | S4 | Screens 5–6 (staff login, inbox), sessions, CSRF, role checks | this branch |
 | S5 | AI extraction (live Google Gemini API, labelled rules fallback), ranking, drafting, price guard, screen 7 | this branch; live path awaits a private key for verification |
 | S6 | Screen 8 (package editor, optimistic lock, publish, restore, history, preview) | this branch |
-| S7 | Full MUST HAVE depth: destination/search/map, blog CMS, package scheduling/duplication, quote PDF/link, additional enquiry channels and editor role | search, duplication, scheduling, journal CMS, editor role, quote PDF/link and mocked staff intake on this branch; remainder planned |
+| S7 | Full MUST HAVE depth: destination/search/map, blog CMS, package scheduling/duplication, quote PDF/link, additional enquiry channels and editor role | destination pages and map links, search, editable package photos/hotels, duplication, scheduling, journal CMS, editor role, quote PDF/link and mocked staff intake on this branch; remainder planned |
 | S8 | States, phone and accessibility pass, performance, screenshots | planned |
 | S9 | TDD, `deployment.md`, DECISIONS, rubric, ZIP | planned |
 
@@ -67,6 +67,7 @@ The brief is in [`docs/CLIENT_BRIEF.md`](CLIENT_BRIEF.md). Everything in this ta
 | A17 | **Spam limits** (20 attempts per 10 minutes, 5 enquiries per hour per client, 300 per hour overall) and the 10-minute duplicate window are this build's choices, not the brief's. |
 | A18 | **Quote approval and sharing.** The brief asks for a PDF and link but gives no expiry or workflow rule. This build uses a 192-bit bearer link with no expiry and requires a staff review checkbox before sharing. The public quote omits traveller identity. Partial estimates may be approved only with their missing rules conspicuously disclosed; a mock-send action records intent but sends no message. |
 | A19 | **External enquiries.** The brief names web, chat, WhatsApp, email and phone, but provides no partner APIs or credentials. Staff manually log synthetic external messages with their source channel. The fixed acknowledgement is recorded in the same mock outbox used by web enquiries; it is never sent. A WhatsApp source does not imply consent to follow up on WhatsApp. |
+| A20 | **Map and media.** The brief supplies no route coordinates, hotel names or licensed client imagery. Package and destination pages link each named stop to an OpenStreetMap search, without implying a verified route. The CMS chooses from a credited placeholder image library and can record only hotel names staff explicitly confirm. These are versioned with package content. |
 
 ## Stack & constraints
 - Language / framework / runtime: TypeScript on Node 22 (`>=22.13`), Hono with JSX server rendering, SQLite via the built-in `node:sqlite` (experimental in Node 22), `node:test`.

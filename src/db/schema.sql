@@ -436,4 +436,20 @@ CREATE TABLE package_quotes (
 );
 CREATE INDEX ix_package_quotes_enquiry ON package_quotes(enquiry_id, created_at DESC);
 
-PRAGMA user_version = 8;
+CREATE TABLE package_version_presentation (
+  version_id INTEGER PRIMARY KEY REFERENCES package_versions(id) ON DELETE CASCADE,
+  hero_photo_id TEXT,
+  band_photo_id TEXT,
+  hotel_names_json TEXT NOT NULL DEFAULT '[]'
+);
+CREATE TRIGGER trg_presentation_insert BEFORE INSERT ON package_version_presentation
+WHEN (SELECT status FROM package_versions WHERE id=NEW.version_id) <> 'draft'
+BEGIN SELECT RAISE(ABORT, 'presentation can be added only to a draft'); END;
+CREATE TRIGGER trg_presentation_update BEFORE UPDATE ON package_version_presentation
+WHEN (SELECT status FROM package_versions WHERE id=OLD.version_id) <> 'draft'
+BEGIN SELECT RAISE(ABORT, 'published presentation is immutable'); END;
+CREATE TRIGGER trg_presentation_delete BEFORE DELETE ON package_version_presentation
+WHEN (SELECT status FROM package_versions WHERE id=OLD.version_id) <> 'draft'
+BEGIN SELECT RAISE(ABORT, 'published presentation is immutable'); END;
+
+PRAGMA user_version = 9;

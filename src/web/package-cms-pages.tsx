@@ -3,6 +3,7 @@ import type { PackageAdminRow, PackageVersion } from '../domain/packages.js';
 import type { PublicationSchedule } from '../domain/publication-schedule.js';
 import type { PageContext } from './pages.js';
 import { CsrfField, StaffShell, type Viewer } from './staff-pages.js';
+import { PHOTOS } from '../domain/photos.js';
 
 const path = (id: number): string => `/staff/packages/${id}`;
 
@@ -98,6 +99,11 @@ export function PackageEditorPage(props: {
           <div class="field"><label for="starRating">Hotel category (stars)</label><input id="starRating" name="starRating" type="number" min="1" max="5" value={f.starRating} /></div>
           <div class="field"><label for="destinations">Destinations, separated by commas</label><input id="destinations" name="destinations" value={f.destinations} maxlength={1000} /></div>
           <div class="field full"><label for="tags">Search tags, separated by commas</label><input id="tags" name="tags" value={f.tags} maxlength={1000} /></div>
+        </div></section>
+        <section class="panel"><h2>Photos and stays</h2><p class="hint">Choose from the credited demo image library. Company A should replace these with its licensed photography.</p><div class="cms-fields">
+          <div class="field"><label for="heroPhotoId">Cover photo</label><select id="heroPhotoId" name="heroPhotoId"><option value="">None</option>{Object.entries(PHOTOS).map(([id, photo]) => <option value={id} selected={f.heroPhotoId === id}>{photo.place}</option>)}</select></div>
+          <div class="field"><label for="bandPhotoId">Second photo</label><select id="bandPhotoId" name="bandPhotoId"><option value="">None</option>{Object.entries(PHOTOS).map(([id, photo]) => <option value={id} selected={f.bandPhotoId === id}>{photo.place}</option>)}</select></div>
+          <div class="field full"><label for="hotelNames">Hotel names, one per line (optional)</label><textarea id="hotelNames" name="hotelNames" rows={4} placeholder="Add only properties Company A has confirmed">{f.hotelNames}</textarea></div>
         </div></section>
         <section class="panel"><h2>Day by day</h2><p class="hint">One line per day: title | description. The number of lines must equal Days before publishing.</p>
           <div class="field"><label for="itinerary">Itinerary</label><textarea id="itinerary" name="itinerary" rows={Math.max(5, Math.min(12, Number(f.days) || 5))} maxlength={120000} placeholder="Munnar arrival | Meet your driver and travel to Munnar.">{f.itinerary}</textarea></div>

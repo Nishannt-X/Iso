@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { all, get, run, transaction, type DatabaseSync, type Param } from '../db/db.js';
 import { mdOrdinal, validateSeasons, type Season } from './seasons.js';
+import { PHOTOS, type PhotoId } from './photos.js';
 
 // Package catalogue domain: versions move draft -> published -> superseded, never backwards.
 // The database enforces the invariants (see schema.sql); this layer adds validation,
@@ -34,6 +35,9 @@ export interface VersionContent {
   destinations: string[];
   tags: string[];
   seasons: Season[];
+  heroPhotoId?: PhotoId | null;
+  bandPhotoId?: PhotoId | null;
+  hotelNames?: string[];
 }
 
 export interface PackageVersion extends VersionContent {
@@ -95,6 +99,9 @@ export const DraftContent = z.object({
   destinations: z.array(text(100)).max(30),
   tags: z.array(text(60)).max(30),
   seasons: z.array(SeasonSchema).max(12),
+  heroPhotoId: z.string().refine((v) => v in PHOTOS).nullable().optional(),
+  bandPhotoId: z.string().refine((v) => v in PHOTOS).nullable().optional(),
+  hotelNames: z.array(text(120)).max(30).optional(),
 });
 
 export const PublishableVersion = DraftContent.superRefine((v, ctx) => {
@@ -122,6 +129,7 @@ function normalise(content: VersionContent): VersionContent {
     tags: [...new Set(trim(content.tags).map((t) => t.toLowerCase()))],
     inclusions: trim(content.inclusions),
     exclusions: trim(content.exclusions),
+    hotelNames: content.hotelNames === undefined ? undefined : trim(content.hotelNames),
   };
 }
 
@@ -132,7 +140,7 @@ function issuesOf(error: z.ZodError): string[] {
 function parseDraft(content: VersionContent): VersionContent {
   const parsed = DraftContent.safeParse(normalise(content));
   if (!parsed.success) throw new DomainError('validation', 'invalid package content', issuesOf(parsed.error));
-  return parsed.data;
+  return parsed.data as VersionContent;
 }
 
 /** Returns the reasons a version cannot be published; empty means publishable. */
@@ -157,6 +165,7 @@ interface VersionRow {
 const VERSION_SELECT = `SELECT v.*, p.code, p.slug FROM package_versions v JOIN packages p ON p.id = v.package_id`;
 
 function hydrate(db: DatabaseSync, r: VersionRow): PackageVersion {
+  const media = get<{ hero_photo_id: string | null; band_photo_id: string | null; hotel_names_json: string }>(db, 'SELECT * FROM package_version_presentation WHERE version_id=?', r.id);
   return {
     id: r.id, packageId: r.package_id, packageCode: r.code, packageSlug: r.slug, versionNo: r.version_no,
     status: r.status, lockVersion: r.lock_version, title: r.title, summary: r.summary, days: r.days,
@@ -170,6 +179,9 @@ function hydrate(db: DatabaseSync, r: VersionRow): PackageVersion {
     seasons: all<{ name: string; start_md: string; end_md: string; price_pp_twin_inr: number; range_assumed: number }>(
       db, 'SELECT * FROM package_version_seasons WHERE version_id = ? ORDER BY position', r.id,
     ).map((s) => ({ name: s.name, startMd: s.start_md, endMd: s.end_md, pricePpTwinInr: s.price_pp_twin_inr, rangeAssumed: s.range_assumed === 1 })),
+    heroPhotoId: media ? media.hero_photo_id as PhotoId | null : undefined,
+    bandPhotoId: media ? media.band_photo_id as PhotoId | null : undefined,
+    hotelNames: media ? JSON.parse(media.hotel_names_json) as string[] : [],
     createdBy: r.created_by, createdAt: r.created_at, updatedAt: r.updated_at, publishedAt: r.published_at,
     changeNote: r.change_note, restoredFromVersionId: r.restored_from_version_id,
   };
@@ -237,6 +249,9 @@ function audit(db: DatabaseSync, actorId: number, action: string, entityId: numb
 }
 
 function insertChildren(db: DatabaseSync, versionId: number, c: VersionContent): void {
+  if (c.heroPhotoId !== undefined || c.bandPhotoId !== undefined || c.hotelNames !== undefined) {
+    run(db, 'INSERT INTO package_version_presentation (version_id,hero_photo_id,band_photo_id,hotel_names_json) VALUES (?,?,?,?)', versionId, c.heroPhotoId ?? null, c.bandPhotoId ?? null, JSON.stringify(c.hotelNames ?? []));
+  }
   c.destinations.forEach((name, i) => run(db, 'INSERT INTO package_version_destinations (version_id, position, name) VALUES (?, ?, ?)', versionId, i + 1, name));
   c.tags.forEach((tag) => run(db, 'INSERT INTO package_version_tags (version_id, tag) VALUES (?, ?)', versionId, tag));
   c.seasons.forEach((s, i) => run(db,
@@ -245,7 +260,7 @@ function insertChildren(db: DatabaseSync, versionId: number, c: VersionContent):
 }
 
 function deleteChildren(db: DatabaseSync, versionId: number): void {
-  for (const table of ['package_version_destinations', 'package_version_tags', 'package_version_seasons']) {
+  for (const table of ['package_version_destinations', 'package_version_tags', 'package_version_seasons', 'package_version_presentation']) {
     run(db, `DELETE FROM ${table} WHERE version_id = ?`, versionId);
   }
 }
@@ -397,6 +412,8 @@ export function restoreVersion(db: DatabaseSync, input: RestoreInput): { draftId
       `INSERT INTO package_version_seasons (version_id, position, name, start_md, end_md, price_pp_twin_inr, range_assumed)
        SELECT ?, position, name, start_md, end_md, price_pp_twin_inr, range_assumed FROM package_version_seasons WHERE version_id = ?`,
       draftId, source.id);
+    const media = get<{ hero_photo_id: string | null; band_photo_id: string | null; hotel_names_json: string }>(db, 'SELECT * FROM package_version_presentation WHERE version_id=?', source.id);
+    if (media) run(db, 'INSERT INTO package_version_presentation (version_id,hero_photo_id,band_photo_id,hotel_names_json) VALUES (?,?,?,?)', draftId, media.hero_photo_id, media.band_photo_id, media.hotel_names_json);
     audit(db, input.actorId, 'version.restore', draftId, { fromVersionId: source.id, fromVersionNo: source.versionNo, newVersionNo: next });
     return { draftId };
   });

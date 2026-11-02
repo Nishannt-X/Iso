@@ -11,7 +11,7 @@ import { getLiveBlogBySlug, listLiveBlogs } from './domain/blog.js';
 import { PHOTO_FILE_PATTERN } from './domain/photos.js';
 import { DEFAULT_LIMITS, registerEnquiryRoutes, type EnquiryLimits } from './web/enquiry-routes.js';
 import { DEFAULT_LOGIN_LIMITS, registerStaffRoutes, type LoginLimits } from './web/staff-routes.js';
-import { HomePage, MessagePage, PackagePage, PackageSearchPage, packagePath, type PageContext } from './web/pages.js';
+import { DestinationIndexPage, DestinationPage, HomePage, MessagePage, PackagePage, PackageSearchPage, destinationPath, destinationSlug, packagePath, type PageContext } from './web/pages.js';
 import { BlogArticlePage, BlogIndexPage } from './web/blog-pages.js';
 import { getPublicQuote } from './domain/package-quotes.js';
 import { renderQuotePdf } from './domain/quote-pdf.js';
@@ -87,6 +87,14 @@ export function createApp(db: DatabaseSync, options: AppOptions = {}): Hono {
     return c.html(doc(<PackageSearchPage packages={listLiveVersions(db)} origins={listDataOrigins(db)} ctx={ctx} query={query} />));
   });
 
+  app.get('/destinations', (c) => c.html(doc(<DestinationIndexPage packages={listLiveVersions(db)} ctx={ctx} />)));
+  app.get('/destinations/:slug', (c) => {
+    const versions = listLiveVersions(db);
+    const name = [...new Set(versions.flatMap((p) => p.destinations))].find((x) => destinationSlug(x) === c.req.param('slug'));
+    if (!name) return c.notFound();
+    return c.html(doc(<DestinationPage name={name} packages={versions.filter((p) => p.destinations.includes(name))} origins={listDataOrigins(db)} ctx={ctx} />));
+  });
+
   app.get('/packages/:slug', (c) => {
     const slug = c.req.param('slug');
     const version = SLUG.test(slug) ? getLiveVersionBySlug(db, slug) : undefined;
@@ -151,6 +159,8 @@ export function createApp(db: DatabaseSync, options: AppOptions = {}): Hono {
     const urls = [
       { loc: `${ctx.siteUrl}/`, lastmod: null as string | null },
       { loc: `${ctx.siteUrl}/packages`, lastmod: null as string | null },
+      { loc: `${ctx.siteUrl}/destinations`, lastmod: null as string | null },
+      ...[...new Set(listLiveVersions(db).flatMap((v) => v.destinations))].map((name) => ({ loc: `${ctx.siteUrl}${destinationPath(name)}`, lastmod: null as string | null })),
       ...listLiveVersions(db).map((v) => ({ loc: `${ctx.siteUrl}${packagePath(v.packageSlug)}`, lastmod: v.publishedAt })),
       { loc: `${ctx.siteUrl}/journal`, lastmod: null as string | null },
       ...listLiveBlogs(db).map((p) => ({ loc: `${ctx.siteUrl}/journal/${p.slug}`, lastmod: p.publishedAt })),

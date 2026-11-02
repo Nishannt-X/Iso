@@ -1,19 +1,22 @@
 import { DomainError, type PackageVersion, type VersionContent } from './packages.js';
+import { photosFor, type PhotoId } from './photos.js';
 
 /** Plain form values are kept verbatim on validation errors; no client-side script is required. */
 export interface PackageForm {
   code: string; slug: string; title: string; summary: string; region: string;
   days: string; nights: string; starRating: string; childPct: string; childRuleNote: string; singleSuppInr: string;
   itinerary: string; inclusions: string; exclusions: string; destinations: string; tags: string; seasons: string; changeNote: string;
+  heroPhotoId: string; bandPhotoId: string; hotelNames: string;
 }
 
 export const emptyPackageForm = (): PackageForm => ({
   code: '', slug: '', title: '', summary: '', region: '', days: '1', nights: '0', starRating: '',
   childPct: '', childRuleNote: '', singleSuppInr: '', itinerary: '', inclusions: '', exclusions: '',
-  destinations: '', tags: '', seasons: '', changeNote: '',
+  destinations: '', tags: '', seasons: '', changeNote: '', heroPhotoId: '', bandPhotoId: '', hotelNames: '',
 });
 
 export function formFromVersion(v: PackageVersion): PackageForm {
+  const photos = photosFor(v.packageCode, v.heroPhotoId, v.bandPhotoId);
   return {
     code: v.packageCode, slug: v.packageSlug, title: v.title, summary: v.summary, region: v.region,
     days: String(v.days), nights: String(v.nights), starRating: v.starRating === null ? '' : String(v.starRating),
@@ -24,6 +27,7 @@ export function formFromVersion(v: PackageVersion): PackageForm {
     destinations: v.destinations.join(', '), tags: v.tags.join(', '),
     seasons: v.seasons.map((s) => `${s.name} | ${s.startMd} | ${s.endMd} | ${s.pricePpTwinInr} | ${s.rangeAssumed ? 'assumed' : 'confirmed'}`).join('\n'),
     changeNote: v.changeNote,
+    heroPhotoId: photos.hero?.id ?? '', bandPhotoId: photos.band?.id ?? '', hotelNames: (v.hotelNames ?? []).join('\n'),
   };
 }
 
@@ -76,5 +80,7 @@ export function parsePackageForm(f: PackageForm): VersionContent {
     singleSuppInr: number(f.singleSuppInr, 'Single supplement', 1, 100_000_000, true),
     itinerary, inclusions: lines(f.inclusions), exclusions: lines(f.exclusions),
     destinations: commaList(f.destinations), tags: commaList(f.tags), seasons,
+    heroPhotoId: (f.heroPhotoId || null) as PhotoId | null, bandPhotoId: (f.bandPhotoId || null) as PhotoId | null,
+    hotelNames: lines(f.hotelNames),
   };
 }

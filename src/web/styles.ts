@@ -43,6 +43,7 @@ p{text-wrap:pretty}
 .brand{font-weight:500;letter-spacing:-.01em;text-decoration:none;font-size:1.125rem}
 .site-head nav a{font-size:.9375rem;text-decoration:none;padding:.5rem 0}
 .site-head nav a:hover{text-decoration:underline}
+@media(max-width:40rem){.site-head .wrap{flex-wrap:wrap;gap:.5rem}.site-head nav{width:100%;justify-content:space-between;gap:.5rem}.site-head nav a{font-size:.875rem}}
 .onimage{position:absolute;inset:0 0 auto 0;color:#fff;background:linear-gradient(to bottom,rgba(7,22,20,.62),transparent)}
 .onimage .wrap{padding-top:0}
 
@@ -90,6 +91,7 @@ figcaption.credit-below a{color:inherit}
 .article figure{margin:clamp(2.5rem,5vw,4rem) 0}.article figure img{width:100%;max-height:32rem;object-fit:cover}
 .article-body{max-width:42rem;font-size:1.12rem;line-height:1.8}.article-body>*+*{margin-top:1.2rem}.article-body h2{font-size:clamp(1.7rem,3vw,2.2rem);margin-top:2.6rem}.article-body h3{font-size:1.4rem;margin-top:2rem}
 .article-body ul,.article-body ol{padding-left:1.5rem;list-style:disc}.article-body ol{list-style:decimal}.article-body li+li{margin-top:.4rem}.article-body blockquote{border-left:3px solid var(--teal);padding-left:1.2rem;color:var(--muted)}
+.destination-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));gap:1rem;margin-top:2.5rem}.destination-grid li{border:1px solid var(--line);background:var(--surface)}.destination-grid a{display:flex;flex-direction:column;justify-content:space-between;min-height:9rem;padding:1.25rem;text-decoration:none}.destination-grid strong{font-size:1.35rem;font-weight:400}.destination-grid span{color:var(--teal);font-size:.9rem}.destination-grid a:hover{background:#eef5f1}.route-map{margin-block:3rem}.route-map ol{display:flex;flex-wrap:wrap;gap:.65rem;margin-top:1rem}.route-map li a{display:block;padding:.6rem .85rem;border:1px solid var(--line);background:var(--surface);border-radius:.2rem;text-decoration:none}.route-map li a:hover{border-color:var(--teal)}.map-action{margin-top:1.5rem}
 .article-body img{max-width:100%;height:auto}.related{border-top:1px solid var(--line);margin-top:4rem;padding-top:2rem}.related h2{font-size:1.5rem;margin-bottom:1rem}
 .related li{border-bottom:1px solid var(--line)}.related a{display:flex;justify-content:space-between;gap:1rem;padding:1rem 0;text-decoration:none}.related a:hover{text-decoration:underline}.related span{color:var(--teal);white-space:nowrap}
 .rows{display:grid;gap:clamp(3rem,7vw,5.5rem)}

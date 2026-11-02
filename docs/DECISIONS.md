@@ -156,3 +156,10 @@
 - **Consequences:** No external connector or real acknowledgement transport runs. Company A must configure those after providing provider access. Demo staff must use synthetic personal data.
 - **Decided by:** agent (Builder) · **Related:** `feat/kochi-tours-core`
 
+## 2026-11-02 · Versioned package presentation and destination pages
+- **Status:** accepted
+- **Context:** The full brief requires destination pages, package photography, hotels and a map. No client image library, hotel list or route coordinates were supplied.
+- **Decision:** Add a per-version presentation row for chosen hero/secondary photos and confirmed hotel names. Published rows are frozen by database triggers; older seed versions use their existing credited photo mapping. Expose server-rendered destination pages from published package destinations. Link each stop to an OpenStreetMap search rather than inventing a geographic route.
+- **Consequences:** Staff can change images and hotel names in a private draft, then preview and publish. The map link leaves this site and does not draw a route. Licensed Company A photos and precise route data remain client inputs.
+- **Decided by:** agent (Builder) · **Related:** `feat/kochi-tours-core`
+

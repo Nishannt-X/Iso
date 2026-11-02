@@ -82,6 +82,7 @@ export function Layout(props: { meta: PageMeta; overImage?: boolean; hasBook?: b
             {props.nav ?? (
               <nav aria-label="Primary">
                 <a href="/packages">All packages</a>
+                <a href="/destinations">Destinations</a>
                 <a href="/journal">Journal</a>
               </nav>
             )}
