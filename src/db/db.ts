@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
 
 export type { DatabaseSync };
@@ -10,6 +11,15 @@ export function openDb(path: string): DatabaseSync {
   db.exec('PRAGMA busy_timeout = 5000');
   if (path !== ':memory:') db.exec('PRAGMA journal_mode = WAL');
   return db;
+}
+
+/** Applies schema.sql to an empty database. Fails loudly on a non-empty one. */
+export function initSchema(db: DatabaseSync): void {
+  db.exec(readFileSync(new URL('./schema.sql', import.meta.url), 'utf-8'));
+}
+
+export function isInitialised(db: DatabaseSync): boolean {
+  return (get<{ user_version: number }>(db, 'PRAGMA user_version')?.user_version ?? 0) >= 1;
 }
 
 export function get<T>(db: DatabaseSync, sql: string, ...params: Param[]): T | undefined {
