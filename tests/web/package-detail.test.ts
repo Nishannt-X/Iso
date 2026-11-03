@@ -149,4 +149,17 @@ describe('Public Package Detail Experience & Editorial Copy', () => {
     assert.ok(!html.includes('A Company A consultant will read it and reply to you personally'));
     assert.ok(html.includes('enquiries are stored in a mock outbox'));
   });
+
+  test('public pages carry no invented rates, reply promises or controls that need JavaScript', async () => {
+    for (const path of ['/', `/packages/${KL07_SLUG}`, '/packages', '/destinations', '/journal']) {
+      const html = await (await app.request(path)).text();
+      // The old client-side estimator invented a 5% GST, a 75% child fare and a 35% solo supplement.
+      assert.ok(!/5% GST|75% rate|supplement|Estimated Party Total/i.test(html), `${path}: invented rate`);
+      // The old slide-over form promised a reply time the build cannot keep and posted fields the server ignores.
+      assert.ok(!/1-hour|within 1 hour|Guaranteed|DPDP Act compliant|whatsapp_consent|company_tax_pin/i.test(html), `${path}: unsupported promise`);
+      // Buttons that do nothing without JavaScript (filters, pins, steppers) are gone.
+      assert.ok(!html.includes('type="button"'), `${path}: script-only control`);
+      assert.ok(!html.includes('role="button"'), `${path}: fake button`);
+    }
+  });
 });
