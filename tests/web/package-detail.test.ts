@@ -180,4 +180,34 @@ describe('Public Package Detail Experience & Editorial Copy', () => {
     for (const id of targets) assert.ok(html.includes(` id="${id}"`), id);
     assert.ok(html.includes('What happens next'));
   });
+
+  test('route stops come only from package data: schematic order, matching days, credited place photos', async () => {
+    const html = await (await app.request(`/packages/${KL07_SLUG}`)).text();
+    const section = html.slice(html.indexOf('data-stops'), html.indexOf('aria-labelledby="prices"'));
+    // No invented distances, times, altitudes or coordinates.
+    assert.ok(!/\b\d+\s?(km|hrs?|m\b)|~|<svg|cx=/i.test(section));
+    assert.ok(section.includes('not to scale'));
+    for (const [i, place] of ['Munnar', 'Thekkady', 'Alleppey'].entries()) {
+      assert.ok(section.includes(`href="#stop-${i + 1}"`), place);
+      assert.ok(section.includes(`id="stop-${i + 1}"`), place);
+      assert.ok(section.includes(`https://www.openstreetmap.org/search?query=${place}%2C%20India`), place);
+    }
+    // Day links point at real itinerary rows that name the stop.
+    for (const day of [...section.matchAll(/href="#day-(\d+)"/g)].map((m) => m[1])) assert.ok(html.includes(` id="day-${day}"`), day);
+    assert.match(section, /href="#day-3"><span class="mono">Day 3<\/span> Munnar tea country/);
+    // A photo appears only for its own place, with its credit.
+    for (const id of [...section.matchAll(/src="\/assets\/images\/([a-z0-9-]+)-900\.jpg"/g)].map((m) => m[1]!)) {
+      assert.ok(['munnar-tea', 'periyar-lake', 'alleppey-sunset'].includes(id), id);
+      assert.ok(section.includes(PHOTOS[id as keyof typeof PHOTOS].author), id);
+    }
+  });
+
+  test('a stop no itinerary day names links to the full itinerary instead', () => {
+    const base = getLiveVersionBySlug(resetDatabase(':memory:'), KL07_SLUG)!;
+    const html = PackagePage({ v: { ...base, destinations: ['Munnar', 'Kumarakom'] }, origin: 'brief', ctx: { siteUrl: SITE } }).toString();
+    const panel = html.slice(html.indexOf('id="stop-2"'), html.indexOf('</article>', html.indexOf('id="stop-2"')));
+    assert.ok(panel.includes('<a href="#itinerary">Explore the full itinerary</a>'));
+    assert.ok(html.includes(' id="itinerary"'));
+    assert.ok(!/<img/.test(panel), 'no library photo of Kumarakom itself, so none is shown');
+  });
 });

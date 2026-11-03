@@ -528,14 +528,37 @@ figcaption.credit-below a{color:inherit}
 /* package detail: map stops, itinerary, glance, booking panel */
 .route-map{margin-block:clamp(3.5rem,6vw,5rem) 0}
 .route-map h2{font-size:clamp(1.625rem,2.5vw,2.125rem);font-weight:300;margin-bottom:.75rem}
-.stops{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,11rem),1fr));gap:.75rem;margin-top:1.25rem}
-.stops a{position:relative;display:flex;flex-direction:column;gap:.2rem;padding:1rem 1.1rem;border:1px solid var(--line);border-radius:.75rem;background:var(--surface);text-decoration:none;
-  transition:background-color .25s ease,border-color .25s ease,color .25s ease}
-.stops strong{font-size:1.15rem;font-weight:500}
-.stop-go{position:absolute;right:1rem;top:.9rem;color:var(--forest);transition:transform .2s var(--ease-out),color .25s ease}
-.stops a:hover,.stops a:focus-visible{background:var(--forest);border-color:var(--forest);color:var(--on-teal)}
-.stops a:hover .micro,.stops a:focus-visible .micro,.stops a:hover .stop-go,.stops a:focus-visible .stop-go{color:var(--copper-tint)}
-.stops a:hover .stop-go,.stops a:focus-visible .stop-go{transform:translate(2px,-2px)}
+.route-strip{position:relative;display:flex;gap:.5rem;margin-top:1.5rem;overflow-x:auto;padding-bottom:.25rem;scrollbar-width:thin}
+.route-strip::before{content:"";position:absolute;left:1.5rem;right:1.5rem;top:1.35rem;border-top:2px dashed var(--copper-line);z-index:0}
+.route-node{position:relative;z-index:1;flex:1 0 auto}
+.route-node a{display:flex;flex-direction:column;align-items:center;gap:.45rem;min-width:6.5rem;padding:.2rem .5rem .5rem;text-decoration:none;border-radius:.75rem;transition:background-color .2s ease}
+.node-no{display:grid;place-items:center;width:2.25rem;height:2.25rem;border-radius:50%;background:var(--surface);border:2px solid var(--forest);color:var(--forest);font-weight:600;
+  transition:background-color .2s ease,color .2s ease,box-shadow .25s var(--ease-out)}
+.node-name{font-size:.9375rem;font-weight:500;text-align:center}
+.route-node a:hover .node-no,.route-node a:focus-visible .node-no,.route-node a[aria-current] .node-no{background:var(--forest);color:var(--on-teal);box-shadow:0 0 0 5px rgba(164,92,50,.18)}
+.route-node a[aria-current] .node-name{color:var(--forest)}
+.stop-panels{display:grid;gap:1rem;margin-top:1.25rem}
+.stop-panel{display:grid;gap:1rem 1.5rem;padding:1.25rem;border:1px solid var(--line);border-radius:1rem;background:var(--surface);scroll-margin-top:2rem;transition:border-color .25s ease,box-shadow .3s var(--ease-out)}
+.stop-panel[hidden]{display:none}
+.stop-panel:focus{outline:0}
+.stop-panel:focus-visible,.stop-panel:target{border-color:var(--forest);box-shadow:var(--glow)}
+@media(min-width:40rem){.stop-panel:has(.stop-photo){grid-template-columns:minmax(0,16rem) minmax(0,1fr)}}
+.stop-photo{margin:0}
+.stop-photo img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:.6rem}
+.stop-photo .credit-below{text-align:left;font-size:.6875rem;margin-top:.4rem}
+.stop-body h3{font-size:1.5rem;font-weight:400;margin:.35rem 0 .75rem}
+.stop-days li+li{margin-top:.25rem}
+.stop-days a{display:inline-flex;gap:.5rem;align-items:baseline;padding:.2rem 0;text-decoration-color:var(--copper-line)}
+.stop-days a:hover{color:var(--forest);text-decoration-color:currentColor}
+.stop-days .mono{color:var(--copper-dark)}
+.stop-days-all a{color:var(--forest);font-weight:500;text-decoration-color:var(--copper-line)}
+.stop-links{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem 1.25rem;margin-top:1.25rem}
+.stop-links .go-link{margin:0}
+.is-inspector .stop-panel{animation:none}
+@media(prefers-reduced-motion:no-preference){.is-inspector .stop-panel:not([hidden]){animation:rise .35s var(--ease-out) both}}
+.itinerary-day{scroll-margin-top:2rem}
+.itinerary-day:target{background:linear-gradient(to right,var(--forest-tint),rgba(238,244,241,0))}
+.itinerary-day:target::before{width:5rem}
 .itinerary-day{transition:background-color .25s ease}
 .itinerary-day::before{content:"";position:absolute;left:0;top:-1px;height:2px;width:0;background:var(--copper);transition:width .35s var(--ease-out)}
 .itinerary-day:hover::before{width:5rem}

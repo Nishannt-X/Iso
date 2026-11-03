@@ -322,6 +322,58 @@ export function PackageSearchPage({ packages, origins, ctx, query }: { packages:
   </Layout>;
 }
 
+/**
+ * The stops of a package, in itinerary order. The route strip is a schematic, not a map: no coordinates,
+ * distances or travel times exist in the data, so none are drawn. Each stop panel uses only package data:
+ * the itinerary days whose title or text names the stop, a library photo of that place when one exists
+ * (credited beside it), and links. Every panel is in the HTML; app.js only shows one at a time.
+ */
+function RouteStops({ v, linkDestinations }: { v: PackageVersion; linkDestinations: boolean }) {
+  return (
+    <section class="route-map" aria-labelledby="route-map-title" data-reveal data-stops>
+      <p class="micro">Route at a glance</p>
+      <h2 id="route-map-title">The stops, in order</h2>
+      <p class="hint">A schematic in itinerary order, not to scale. Distances and travel times are not listed. OpenStreetMap links open in a new tab and show places, not a promised route.</p>
+      <ol class="route-strip">
+        {v.destinations.map((place, i) => (
+          <li class="route-node"><a href={`#stop-${i + 1}`}><span class="node-no mono" aria-hidden="true">{i + 1}</span><span class="node-name">{place}</span></a></li>
+        ))}
+      </ol>
+      <div class="stop-panels">
+        {v.destinations.map((place, i) => {
+          const needle = place.toLocaleLowerCase('en-IN');
+          const days = v.itinerary.filter((d) => `${d.title} ${d.description}`.toLocaleLowerCase('en-IN').includes(needle));
+          const photoId = DESTINATION_PHOTO[destinationSlug(place)];
+          const photo = photoId ? PHOTOS[photoId] : null;
+          return (
+            <article class="stop-panel" id={`stop-${i + 1}`} tabindex={-1} aria-labelledby={`stop-${i + 1}-title`}>
+              {photo ? (
+                <figure class="stop-photo">
+                  <Picture photo={photo} sizes="(min-width: 62rem) 18rem, 100vw" />
+                  <figcaption class="credit-below"><Credit photo={photo} /></figcaption>
+                </figure>
+              ) : null}
+              <div class="stop-body">
+                <p class="micro">Stop {i + 1} of {v.destinations.length}</p>
+                <h3 id={`stop-${i + 1}-title`}>{place}</h3>
+                {days.length ? (
+                  <ul class="stop-days">
+                    {days.map((d) => <li><a href={`#day-${d.day}`}><span class="mono">Day {d.day}</span> {d.title}</a></li>)}
+                  </ul>
+                ) : <p class="stop-days-all"><a href="#itinerary">Explore the full itinerary</a></p>}
+                <p class="stop-links">
+                  <a class="ghost" href={mapPath(place)} target="_blank" rel="noopener noreferrer">{place} on OpenStreetMap ↗</a>
+                  {linkDestinations ? <a class="go-link" href={destinationPath(place)}>All journeys to {place}</a> : null}
+                </p>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 export function PackagePage({ v, origin, ctx, previewPackageId }: { v: PackageVersion; origin: DataOrigin | undefined; ctx: PageContext; previewPackageId?: number }) {
   const { hero, band } = photosFor(v.packageCode, v.heroPhotoId, v.bandPhotoId);
   const stars = starLabel(v.starRating);
@@ -388,7 +440,7 @@ export function PackagePage({ v, origin, ctx, previewPackageId }: { v: PackageVe
             <h2 id="itinerary">Day by day</h2>
             <ol class="itinerary" aria-labelledby="itinerary">
               {v.itinerary.map((d) => (
-                <li class="itinerary-day">
+                <li class="itinerary-day" id={`day-${d.day}`}>
                   <div class="day-col">
                     <span class="day num">Day {d.day}</span>
                   </div>
@@ -452,24 +504,7 @@ export function PackagePage({ v, origin, ctx, previewPackageId }: { v: PackageVe
             </p>
           </section>
 
-          {v.destinations.length ? (
-            <section class="route-map" aria-labelledby="route-map-title" data-reveal>
-              <h2 id="route-map-title">Explore the stops on a map</h2>
-              <p class="hint">OpenStreetMap opens in a new tab. These links show places, not a promised travel route.</p>
-
-              <ol class="stops">
-                {v.destinations.map((place) => (
-                  <li>
-                    <a href={mapPath(place)} target="_blank" rel="noopener noreferrer">
-                      <span class="micro">Stop</span>
-                      <strong>{place}</strong>
-                      <span class="stop-go" aria-hidden="true">↗</span>
-                    </a>
-                  </li>
-                ))}
-              </ol>
-            </section>
-          ) : null}
+          {v.destinations.length ? <RouteStops v={v} linkDestinations={previewPackageId === undefined} /> : null}
 
           <section class="detail-section" aria-labelledby="prices" data-reveal>
             <h2 id="prices">Prices by season</h2>
