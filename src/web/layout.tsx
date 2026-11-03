@@ -81,13 +81,16 @@ export function Layout(props: { meta: PageMeta; overImage?: boolean; hasBook?: b
           <div class="wrap">
             <a class="brand" href={props.brandHref ?? '/'}>{SITE_NAME}</a>
             {props.nav ?? (
-              <nav aria-label="Primary">
-                <a href="/packages">Journeys</a>
-                <a href="/destinations">Destinations</a>
-                <a href="/journal">Journal</a>
-                <a href="/#how">How it works</a>
-                <a href="/staff/login" class="nav-staff-link">Staff portal</a>
-              </nav>
+              <div class="head-right">
+                <nav aria-label="Primary">
+                  <a href="/packages">Journeys</a>
+                  <a href="/destinations">Destinations</a>
+                  <a href="/journal">Journal</a>
+                  <a href="/#how">How it works</a>
+                </nav>
+                <span class="head-divider" aria-hidden="true" />
+                <a href="/staff/login" class="staff-link">Staff ↗</a>
+              </div>
             )}
           </div>
         </header>
@@ -103,7 +106,7 @@ export function Layout(props: { meta: PageMeta; overImage?: boolean; hasBook?: b
                     <a href="/destinations">Destinations</a>
                     <a href="/journal">Journal</a>
                     <a href="/#how">How it works</a>
-                    <a href="/staff/login" rel="nofollow">Staff sign in →</a>
+                    <a href="/staff/login" rel="nofollow">Staff sign in</a>
                   </nav>
                 </div>
                 <p>
@@ -111,6 +114,7 @@ export function Layout(props: { meta: PageMeta; overImage?: boolean; hasBook?: b
                   Itineraries, inclusions, the other packages and all photography are synthetic or placeholder content.
                 </p>
                 <p>Photographs are Creative Commons images from Wikimedia Commons, credited beside each use. They are not Company A&rsquo;s own.</p>
+                <p class="foot-staff"><a href="/staff/login" rel="nofollow">Staff &amp; Consultant portal →</a></p>
               </div>
             </footer>
           )

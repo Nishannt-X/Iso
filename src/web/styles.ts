@@ -48,17 +48,28 @@ p{text-wrap:pretty}
 
 /* header */
 .site-head{position:relative;z-index:5;padding-block:1.25rem}
-.site-head .wrap{display:flex;justify-content:space-between;align-items:baseline;gap:1rem}
+.site-head .wrap{display:flex;justify-content:space-between;align-items:center;gap:1.5rem}
 .brand{font-weight:500;letter-spacing:-.01em;text-decoration:none;font-size:1.125rem}
-.site-head nav{display:flex;gap:1.5rem}
-.site-head nav a{font-size:.9375rem;text-decoration:none;padding:.5rem 0}
+.head-right{display:flex;align-items:center;gap:1.25rem}
+.site-head nav{display:flex;gap:1.5rem;align-items:center}
+.site-head nav a{font-size:.9375rem;text-decoration:none;padding:.35rem 0}
 .site-head nav a:hover{text-decoration:underline}
-.nav-staff-link{font-size:.8125rem!important;opacity:.9;padding:.25rem .75rem!important;border:1px solid currentColor;border-radius:9999px;transition:all .18s var(--ease)}
-.nav-staff-link:hover{opacity:1;background:rgba(255,255,255,.15);text-decoration:none!important}
-.site-head:not(.onimage) .nav-staff-link:hover{background:var(--surface-warm)}
-@media(max-width:40rem){.site-head .wrap{flex-wrap:wrap;gap:.5rem}.site-head nav{width:100%;justify-content:space-between;gap:.5rem}.site-head nav a{font-size:.875rem}}
+.head-divider{display:inline-block;width:1px;height:.9rem;background:currentColor;opacity:.25}
+.staff-link{font-size:.875rem;text-decoration:none;opacity:.8;display:inline-flex;align-items:center;gap:.2rem;transition:opacity .15s}
+.staff-link:hover{opacity:1;text-decoration:underline}
+@media(max-width:44rem){
+  .site-head .wrap{flex-wrap:wrap;gap:.75rem}
+  .head-right{width:100%;justify-content:space-between;gap:.75rem}
+  .site-head nav{gap:.85rem}
+  .site-head nav a{font-size:.875rem}
+  .head-divider{display:none}
+  .staff-link{font-size:.8125rem}
+}
 .onimage{position:absolute;inset:0 0 auto 0;color:#fff;background:linear-gradient(to bottom,rgba(5,38,34,.7),transparent)}
 .onimage .wrap{padding-top:0}
+.foot-staff{margin-top:.75rem;font-size:.875rem;color:var(--muted)}
+.foot-staff a{color:var(--forest);font-weight:500;text-decoration:none}
+.foot-staff a:hover{text-decoration:underline}
 
 /* hero */
 .hero{position:relative;color:#fff;background:var(--forest-deep);display:flex;align-items:flex-end;min-height:min(84svh,52rem);isolation:isolate;overflow:hidden}
