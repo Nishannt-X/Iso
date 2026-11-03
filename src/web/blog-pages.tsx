@@ -9,8 +9,8 @@ import { STAFF_CSS } from './staff-styles.js';
 
 export function BlogIndexPage({ posts, ctx }: { posts: BlogVersion[]; ctx: PageContext }) {
   const meta: PageMeta = { title: 'Journal | Kochi Tours', description: 'Ideas and planning notes for Kerala and South India journeys.', path: '/journal', siteUrl: ctx.siteUrl };
-  return <Layout meta={meta}><section class="section"><div class="wrap journal"><p class="eyebrow">Journal</p><h1>Ideas for the journey</h1><p class="lede">Small notes to help you choose a trip that feels right.</p>
-    {posts.length ? <ul class="journal-list">{posts.map((p) => <li><a href={`/journal/${p.slug}`}><span>{p.category}</span><strong>{p.title}</strong><p>{p.excerpt}</p><small>Read article →</small></a></li>)}</ul> : <p class="empty">No articles have been published yet.</p>}
+  return <Layout meta={meta}><section class="section"><div class="wrap journal"><header class="page-head"><p class="micro rise">Journal</p><h1 class="rise d1">Ideas for the journey</h1><p class="lede rise d2">Small notes to help you choose a trip that feels right.</p></header>
+    {posts.length ? <ul class="journal-list" data-reveal>{posts.map((p) => <li><a href={`/journal/${p.slug}`}><span>{p.category}</span><strong>{p.title}</strong><p>{p.excerpt}</p><small>Read article<i aria-hidden="true"> →</i></small></a></li>)}</ul> : <div class="empty-state"><p class="micro">Nothing yet</p><p>No articles have been published yet.</p></div>}
   </div></section></Layout>;
 }
 
@@ -19,10 +19,10 @@ export function BlogArticlePage({ post, related, ctx, previewId }: { post: BlogV
   const meta: PageMeta = { title: post.seoTitle, description: post.seoDescription, path: previewId ? `/staff/blogs/${previewId}/preview` : `/journal/${post.slug}`, siteUrl: ctx.siteUrl, image: photo, noindex: previewId !== undefined };
   return <Layout meta={meta} extraCss={previewId ? STAFF_CSS : undefined}>
     {previewId ? <div class="preview-banner" role="status"><strong>Private article preview</strong><span>This draft is not public.</span><a href={`/staff/blogs/${previewId}/edit`}>Back to editor</a></div> : null}
-    <article class="wrap article"><p class="eyebrow">{post.category}</p><h1>{post.title}</h1><p class="article-deck">{post.excerpt}</p>
+    <article class="wrap article"><p class="micro rise">{post.category}</p><h1 class="rise d1">{post.title}</h1><p class="article-deck rise d2">{post.excerpt}</p>
       {photo ? <figure><Picture photo={photo} sizes="(min-width: 50rem) 48rem, 100vw" eager /><figcaption class="credit-below"><Credit photo={photo} /></figcaption></figure> : null}
       <div class="article-body" dangerouslySetInnerHTML={{ __html: renderBlogBody(post.body) }} />
-      {related.length ? <aside class="related" aria-labelledby="related-title"><h2 id="related-title">Trips mentioned here</h2><ul>{related.map((p) => <li><a href={packagePath(p.packageSlug)}>{p.title}<span>Explore package →</span></a></li>)}</ul></aside> : null}
+      {related.length ? <aside class="related" aria-labelledby="related-title" data-reveal><h2 id="related-title">Trips mentioned here</h2><ul>{related.map((p) => <li><a href={packagePath(p.packageSlug)}>{p.title}<span>Explore package →</span></a></li>)}</ul></aside> : null}
       <p class="hint">Demo editorial content. Company A must review before using this as its own travel advice.</p>
     </article>
   </Layout>;

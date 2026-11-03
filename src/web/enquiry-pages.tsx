@@ -58,9 +58,10 @@ export function EnquiryFormPage({ version: v, values, errors, banner, submission
   };
   return (
     <Layout meta={meta}>
-      <div class="wrap">
+      <div class="wrap enquiry-layout">
         <div class="enquiry">
           <p class="crumb"><a href={packagePath(v.packageSlug)}>Back to the package</a></p>
+          <p class="micro rise">Enquiry · <span class="mono">{v.packageCode}</span></p>
           <h1>Enquire about {v.title}</h1>
           <p class="facts">{duration(v)} · {v.region}</p>
           {from !== null ? (
@@ -85,7 +86,16 @@ export function EnquiryFormPage({ version: v, values, errors, banner, submission
             </div>
           ) : null}
 
-          <form method="post" action="/enquire" class="form" accept-charset="utf-8">
+          <nav class="steps" aria-label="Form sections">
+            <ol>
+              <li><a href="#step-trip"><span class="step-no" aria-hidden="true">1</span>Your trip</a></li>
+              <li><a href="#step-details"><span class="step-no" aria-hidden="true">2</span>Your details</a></li>
+              <li><a href="#step-whatsapp"><span class="step-no" aria-hidden="true">3</span>WhatsApp</a></li>
+              <li><a href="#step-send"><span class="step-no" aria-hidden="true">4</span>Send</a></li>
+            </ol>
+          </nav>
+
+          <form method="post" action="/enquire" class="form stepped" accept-charset="utf-8">
             <input type="hidden" name="package" value={v.packageSlug} />
             <input type="hidden" name="key" value={submissionKey} />
             <div class="hp" aria-hidden="true">
@@ -93,8 +103,8 @@ export function EnquiryFormPage({ version: v, values, errors, banner, submission
               <input type="text" id="website" name="website" tabindex={-1} autocomplete="off" />
             </div>
 
-            <fieldset>
-              <legend>Your trip</legend>
+            <fieldset id="step-trip">
+              <legend><span class="step-no" aria-hidden="true">1</span>Your trip</legend>
               <Field name="travelStart" label="Preferred start date" optional error={errors.travelStart} hint="An approximate date is fine. You can also say the month in your message.">
                 <input type="date" id="travelStart" name="travelStart" value={values.travelStart} min={today} max={maxDate} {...aria('travelStart', errors, true)} />
               </Field>
@@ -128,8 +138,8 @@ export function EnquiryFormPage({ version: v, values, errors, banner, submission
               </Field>
             </fieldset>
 
-            <fieldset>
-              <legend>Your details</legend>
+            <fieldset id="step-details">
+              <legend><span class="step-no" aria-hidden="true">2</span>Your details</legend>
               <Field name="name" label="Your name" error={errors.name}>
                 <input type="text" id="name" name="name" value={values.name} autocomplete="name" required {...aria('name', errors, false)} />
               </Field>
@@ -141,8 +151,8 @@ export function EnquiryFormPage({ version: v, values, errors, banner, submission
               </Field>
             </fieldset>
 
-            <fieldset class="consent">
-              <legend>WhatsApp (optional)</legend>
+            <fieldset class="consent" id="step-whatsapp">
+              <legend><span class="step-no" aria-hidden="true">3</span>WhatsApp (optional)</legend>
               <div class="check">
                 <input type="checkbox" id="whatsappConsent" name="whatsappConsent" value="on" checked={values.whatsappConsent === 'on'} {...aria('whatsappConsent', errors, false)} />
                 <label for="whatsappConsent">{WHATSAPP_CONSENT_TEXT}</label>
@@ -150,7 +160,7 @@ export function EnquiryFormPage({ version: v, values, errors, banner, submission
               {errors.whatsappConsent ? <p class="error" id="whatsappConsent-error">{errors.whatsappConsent}</p> : null}
             </fieldset>
 
-            <section class="privacy" aria-labelledby="privacy-title">
+            <section class="privacy" id="step-send" aria-labelledby="privacy-title">
               <h2 id="privacy-title">How we use your details</h2>
               {PRIVACY_NOTICE.map((p) => <p>{p}</p>)}
               <p class="fineprint">{PRIVACY_DRAFT_NOTE}</p>
@@ -159,6 +169,16 @@ export function EnquiryFormPage({ version: v, values, errors, banner, submission
             <button class="btn" type="submit">Send enquiry</button>
           </form>
         </div>
+        <aside class="next-panel" aria-labelledby="next-title">
+          <p class="micro">After you send</p>
+          <h2 id="next-title">What happens next</h2>
+          <ol>
+            <li><strong>Saved with a reference</strong><span>Your enquiry is stored as you sent it, and the next page gives you a reference and a private status link.</span></li>
+            <li><strong>A fixed acknowledgement</strong><span>It appears on the next page straight away. In this demo build it is kept in a mock outbox; nothing is emailed or texted.</span></li>
+            <li><strong>A consultant reads it</strong><span>A Company A consultant reads your enquiry and replies to you personally.</span></li>
+          </ol>
+          <p class="fineprint">No payment is taken on this site.</p>
+        </aside>
       </div>
     </Layout>
   );
@@ -182,17 +202,19 @@ export function AcknowledgementPage({ ack, ctx }: { ack: AcknowledgementView; ct
   return (
     <Layout meta={meta}>
       <div class="wrap">
-        <div class="enquiry">
-          <h1>We have received your enquiry</h1>
+        <div class="enquiry ack-page">
+          <div class="ack-mark" aria-hidden="true"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="22" /><path d="M14 25l7 7 13-15" /></svg></div>
+          <p class="micro rise">Enquiry received</p>
+          <h1 class="rise d1">We have received your enquiry</h1>
           <p class="lead-in">A Company A consultant will read it and reply to you personally.</p>
           <dl class="at-a-glance">
-            <div><dt>Reference</dt><dd class="num">{ack.reference}</dd></div>
+            <div><dt>Reference</dt><dd class="mono ref">{ack.reference}</dd></div>
             <div>
               <dt>Package</dt>
               <dd>{ack.packageIsLive ? <a href={packagePath(ack.packageSlug)}>{ack.packageTitle}</a> : ack.packageTitle}</dd>
             </div>
             <div><dt>Received</dt><dd>{formatReceived(ack.receivedAt)}</dd></div>
-            <div><dt>Status</dt><dd>Received</dd></div>
+            <div><dt>Status</dt><dd><span class="status-dot" aria-hidden="true" />Received</dd></div>
           </dl>
 
           <h2 class="sub" id="ack-title">Acknowledgement</h2>

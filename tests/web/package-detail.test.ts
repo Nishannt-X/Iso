@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createApp } from '../../src/app.js';
 import { resetDatabase } from '../../src/db/seed.js';
 import { getLiveVersionBySlug } from '../../src/domain/packages.js';
+import { PHOTOS } from '../../src/domain/photos.js';
 import { PackagePage } from '../../src/web/pages.js';
 
 const SITE = 'https://example.com';
@@ -161,5 +162,22 @@ describe('Public Package Detail Experience & Editorial Copy', () => {
       assert.ok(!html.includes('type="button"'), `${path}: script-only control`);
       assert.ok(!html.includes('role="button"'), `${path}: fake button`);
     }
+  });
+
+  test('destination tiles credit every photograph beside it and plain tiles show no photo', async () => {
+    const html = await (await app.request('/destinations')).text();
+    const shown = [...html.matchAll(/<img [^>]*?src="\/assets\/images\/([a-z0-9-]+)-900\.jpg"/g)].map((m) => m[1]!);
+    assert.ok(shown.length >= 5);
+    for (const id of shown) assert.ok(html.includes(PHOTOS[id as keyof typeof PHOTOS].author), id);
+    assert.match(html, /<li class="dest-tile plain">/);
+  });
+
+  test('enquiry form step links all point at sections on the page', async () => {
+    const html = await (await app.request(`/enquire?package=${KL07_SLUG}`)).text();
+    const steps = [...html.matchAll(/<nav class="steps"[\s\S]*?<\/nav>/g)][0]![0];
+    const targets = [...steps.matchAll(/href="#([^"]+)"/g)].map((m) => m[1]);
+    assert.equal(targets.length, 4);
+    for (const id of targets) assert.ok(html.includes(` id="${id}"`), id);
+    assert.ok(html.includes('What happens next'));
   });
 });

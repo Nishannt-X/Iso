@@ -1,4 +1,4 @@
-import { HOME_HERO, photosFor } from '../domain/photos.js';
+import { HOME_HERO, PHOTOS, photosFor, type PhotoId } from '../domain/photos.js';
 import type { DataOrigin, PackageVersion } from '../domain/packages.js';
 import { Credit, Layout, Picture, SITE_NAME, type PageMeta } from './layout.js';
 import { cleanSummary, duration, formatInr, fromPrice, GST_NOTE, metaDescription, PRICE_BASIS, pluralise, seasonDates, starLabel } from './format.js';
@@ -17,13 +17,67 @@ export const destinationSlug = (name: string): string => name.toLocaleLowerCase(
 export const destinationPath = (name: string): string => `/destinations/${destinationSlug(name)}`;
 const mapPath = (name: string): string => `https://www.openstreetmap.org/search?query=${encodeURIComponent(`${name}, India`)}`;
 
+/** A photograph of the place itself, only where the credited library has one. Other places get a plain tile. */
+const DESTINATION_PHOTO: Record<string, PhotoId> = {
+  alleppey: 'alleppey-sunset', goa: 'goa-vagator', kochi: 'fort-kochi-nets', kovalam: 'kovalam-lighthouse', munnar: 'munnar-tea', thekkady: 'periyar-lake',
+};
+
+function PageHead(props: { eyebrow: string; title: string; lede: string; back?: { href: string; text: string } }) {
+  return (
+    <header class="page-head">
+      {props.back ? <a class="link back" href={props.back.href}>{props.back.text}</a> : null}
+      <p class="micro rise">{props.eyebrow}</p>
+      <h1 class="rise d1">{props.title}</h1>
+      <p class="lede rise d2">{props.lede}</p>
+    </header>
+  );
+}
+
 export function DestinationIndexPage({ packages, ctx }: { packages: PackageVersion[]; ctx: PageContext }) {
   const names = [...new Set(packages.flatMap((p) => p.destinations))].sort((a, b) => a.localeCompare(b));
-  return <Layout meta={{ title: 'Destinations | Kochi Tours', description: 'Find tours by place across Kerala and South India.', path: '/destinations', siteUrl: ctx.siteUrl }}><section class="section"><div class="wrap"><p class="eyebrow">Places</p><h1>Travel by destination</h1><p class="lede">Choose a place, then see the journeys that include it.</p>{names.length ? <ul class="destination-grid">{names.map((name) => <li><a href={destinationPath(name)}><strong>{name}</strong><span>{packages.filter((p) => p.destinations.includes(name)).length} journeys →</span></a></li>)}</ul> : <p class="empty">No destinations are published yet.</p>}</div></section></Layout>;
+  return (
+    <Layout meta={{ title: 'Destinations | Kochi Tours', description: 'Find tours by place across Kerala and South India.', path: '/destinations', siteUrl: ctx.siteUrl }}>
+      <section class="section"><div class="wrap">
+        <PageHead eyebrow="Places" title="Travel by destination" lede="Choose a place, then see the journeys that include it." />
+        {names.length ? (
+          <ul class="dest-tiles" data-reveal>
+            {names.map((name) => {
+              const id = DESTINATION_PHOTO[destinationSlug(name)];
+              const photo = id ? PHOTOS[id] : null;
+              const count = packages.filter((p) => p.destinations.includes(name)).length;
+              return (
+                <li class={photo ? 'dest-tile' : 'dest-tile plain'}>
+                  <figure>
+                    <div class="dest-media">
+                      {photo ? <Picture photo={photo} sizes="(min-width: 64rem) 22rem, (min-width: 40rem) 45vw, 100vw" /> : null}
+                      <div class="dest-label">
+                        <h2><a href={destinationPath(name)}>{name}</a></h2>
+                        <p>{pluralise(count, 'journey')}<span aria-hidden="true">→</span></p>
+                      </div>
+                    </div>
+                    {photo ? <figcaption class="credit-below"><Credit photo={photo} /></figcaption> : null}
+                  </figure>
+                </li>
+              );
+            })}
+          </ul>
+        ) : <p class="empty">No destinations are published yet.</p>}
+      </div></section>
+    </Layout>
+  );
 }
 
 export function DestinationPage({ name, packages, origins, ctx }: { name: string; packages: PackageVersion[]; origins: Map<number, DataOrigin>; ctx: PageContext }) {
-  return <Layout meta={{ title: `${name} tours | Kochi Tours`, description: `Published holiday packages that include ${name}.`, path: destinationPath(name), siteUrl: ctx.siteUrl }}><section class="section"><div class="wrap"><a class="link back" href="/destinations">All destinations</a><p class="eyebrow">Destination</p><h1>{name}</h1><p class="lede">Journeys that include {name}. Compare each itinerary, hotel category and seasonal price.</p><p class="map-action"><a class="link" href={mapPath(name)} target="_blank" rel="noopener noreferrer">Open {name} on OpenStreetMap ↗</a></p><ul class="rows">{packages.map((p) => <PackageRow v={p} origin={origins.get(p.packageId)} />)}</ul></div></section></Layout>;
+  return (
+    <Layout meta={{ title: `${name} tours | Kochi Tours`, description: `Published holiday packages that include ${name}.`, path: destinationPath(name), siteUrl: ctx.siteUrl }}>
+      <section class="section"><div class="wrap">
+        <PageHead back={{ href: '/destinations', text: 'All destinations' }} eyebrow="Destination" title={name} lede={`Journeys that include ${name}. Compare each itinerary, hotel category and seasonal price.`} />
+        <p class="map-action"><a class="ghost" href={mapPath(name)} target="_blank" rel="noopener noreferrer">Open {name} on OpenStreetMap ↗</a></p>
+        <div class="section-head"><h2>Journeys</h2><p class="count">{pluralise(packages.length, 'journey')}</p></div>
+        <ul class="cards" data-reveal>{packages.map((p) => <PackageRow v={p} origin={origins.get(p.packageId)} />)}</ul>
+      </div></section>
+    </Layout>
+  );
 }
 
 function PriceLine({ seasons }: { seasons: PackageVersion['seasons'] }) {
@@ -46,19 +100,22 @@ function PackageRow({ v, origin }: { v: PackageVersion; origin: DataOrigin | und
   const { hero } = photosFor(v.packageCode, v.heroPhotoId, v.bandPhotoId);
   const stars = starLabel(v.starRating);
   return (
-    <li class="row">
+    <li class="pcard">
       <figure class="shot">
         <div class={hero ? 'thumb' : 'thumb none'}>
-          {hero ? <Picture photo={hero} sizes="(min-width: 56rem) 58vw, 100vw" /> : <span>Photo to come</span>}
+          {hero ? <Picture photo={hero} sizes="(min-width: 64rem) 22rem, (min-width: 40rem) 45vw, 100vw" /> : <span>Photo to come</span>}
+          <span class="pcard-len">{duration(v)}</span>
         </div>
         {hero ? <figcaption class="credit-below"><Credit photo={hero} /></figcaption> : null}
       </figure>
-      <div>
+      <div class="pcard-body">
+        <p class="micro"><span class="mono">{v.packageCode}</span> · {v.region}</p>
         <h2><a href={packagePath(v.packageSlug)}>{v.title}</a></h2>
-        <p class="facts">{[duration(v), stars ? `${stars} stays` : null, v.region].filter(Boolean).join(' · ')}</p>
+        <p class="facts">{[stars ? `${stars} stays` : null, v.destinations.join(' · ')].filter(Boolean).join(' · ')}</p>
         <p class="summary">{cleanSummary(v.summary)}</p>
         <PriceLine seasons={v.seasons} />
         <DemoLabel origin={origin} />
+        <span class="pcard-go" aria-hidden="true">View journey</span>
       </div>
     </li>
   );
@@ -68,7 +125,7 @@ function Journey({ v, origin }: { v: PackageVersion; origin: DataOrigin | undefi
   const stars = starLabel(v.starRating);
   return (
     <li class="trip" data-origin={origin}>
-      <p class="cell code num"><span class="legend">Code</span>{v.packageCode}</p>
+      <p class="cell code mono"><span class="legend">Code</span>{v.packageCode}</p>
       <div class="cell what">
         <h3><a href={packagePath(v.packageSlug)}>{v.title}</a></h3>
         <p class="route">{v.destinations.join(' · ')}</p>
@@ -94,7 +151,7 @@ function ThemeSection({ group, tall, origins }: { group: ThemeGroup<PackageVersi
   const photo = theme ? themePhoto(theme) : null;
   const id = theme ? `theme-${theme.id}` : 'theme-more';
   return (
-    <section class="theme" aria-labelledby={id}>
+    <section class="theme" aria-labelledby={id} data-reveal>
       {photo ? (
         <figure class={tall ? 'bleed tall' : 'bleed'}>
           <Picture photo={photo} sizes="100vw" />
@@ -155,8 +212,8 @@ export function HomePage({ packages, origins, ctx }: { packages: PackageVersion[
         <div class="wrap cover-in">
           <div class="ticket">
             <div class="ticket-main">
-              <h1 id="home-title">Kerala and South India, from Kochi</h1>
-              <p class="lede">Holiday packages for families, honeymooners and groups, with every day laid out and every price stated per person.</p>
+              <h1 id="home-title" class="rise">Kerala and South India, from Kochi</h1>
+              <p class="lede rise d1">Holiday packages for families, honeymooners and groups, with every day laid out and every price stated per person.</p>
             </div>
             <div class="ticket-stub">
               {facts ? (
@@ -180,7 +237,11 @@ export function HomePage({ packages, origins, ctx }: { packages: PackageVersion[
                   {facts.isLowestFareSynthetic ? ' · lowest fare is from a demo package' : ''}
                 </p>
               ) : null}
-              <a class="btn" href="#packages">See the journeys</a>
+              <form action="/packages" method="get" class="hero-search" role="search">
+                <label for="home-search" class="micro">Find a place or experience</label>
+                <div><input id="home-search" name="q" type="search" maxlength={80} placeholder="Try Munnar or houseboat" /><button class="btn" type="submit">Search</button></div>
+              </form>
+              <a class="go-link" href="#packages">Or browse all journeys</a>
             </div>
           </div>
         </div>
@@ -193,7 +254,6 @@ export function HomePage({ packages, origins, ctx }: { packages: PackageVersion[
             <h2 id="packages-title">Journeys</h2>
             {packages.length > 0 ? <p class="count">{packages.length} available</p> : null}
           </div>
-          <form action="/packages" method="get" class="package-search"><label for="home-search">Find a place or experience</label><div><input id="home-search" name="q" type="search" maxlength={80} placeholder="Try Munnar or houseboat" /><button class="btn" type="submit">Search</button></div></form>
           {groups.length > 1 ? (
             <nav class="theme-jump" aria-label="Jump to a theme">
               <span class="micro">Jump to</span>
@@ -223,8 +283,9 @@ export function HomePage({ packages, origins, ctx }: { packages: PackageVersion[
         ))}
       </section>
 
-      <section class="section how" id="how" aria-labelledby="how-title">
+      <section class="section how" id="how" aria-labelledby="how-title" data-reveal>
         <div class="wrap">
+          <p class="micro">Three steps</p>
           <h2 id="how-title">How it works</h2>
           <ol class="legs">
             <li>
@@ -253,10 +314,10 @@ export function PackageSearchPage({ packages, origins, ctx, query }: { packages:
   const meta: PageMeta = { title: 'Explore holiday packages | Kochi Tours', description: 'Explore Kerala and South India holiday packages by destination and experience.', path: '/packages', siteUrl: ctx.siteUrl, noindex: Boolean(query) };
   return <Layout meta={meta}>
     <section class="section"><div class="wrap">
-      <p class="eyebrow">Explore</p><h1 class="search-title">Find your next journey</h1>
-      <form action="/packages" method="get" class="package-search"><label for="package-search">Destination or experience</label><div><input id="package-search" name="q" type="search" value={query} maxlength={80} placeholder="Try Munnar or houseboat" /><button class="btn" type="submit">Search</button></div></form>
+      <PageHead eyebrow="Explore" title="Find your next journey" lede="Search by place or experience. Every fare is per person on twin sharing, with GST pending." />
+      <form action="/packages" method="get" class="package-search" role="search"><label for="package-search">Destination or experience</label><div><input id="package-search" name="q" type="search" value={query} maxlength={80} placeholder="Try Munnar or houseboat" /><button class="btn" type="submit">Search</button></div></form>
       <div class="section-head"><h2>{query ? `Results for “${query}”` : 'All packages'}</h2><p class="count">{matches.length} {matches.length === 1 ? 'package' : 'packages'}</p></div>
-      {matches.length ? <ul class="rows">{matches.map((v) => <PackageRow v={v} origin={origins.get(v.packageId)} />)}</ul> : <div class="empty"><p>No published package matches that search.</p><a class="link" href="/packages">See all packages</a></div>}
+      {matches.length ? <ul class="cards" data-reveal>{matches.map((v) => <PackageRow v={v} origin={origins.get(v.packageId)} />)}</ul> : <div class="empty-state"><p class="micro">No matches</p><p>No published package matches that search. Try a place such as Munnar, or a word such as houseboat.</p><a class="ghost" href="/packages">See all packages</a></div>}
     </div></section>
   </Layout>;
 }
@@ -283,16 +344,16 @@ export function PackagePage({ v, origin, ctx, previewPackageId }: { v: PackageVe
         <section class="hero short has-credit" aria-labelledby="pkg-title">
           <Picture photo={hero} sizes="100vw" eager />
           <div class="wrap">
-            <p class="kicker"><span class="kicker-region">{v.region}</span><span class="sep" aria-hidden="true"> · </span><span class="kicker-code num">{v.packageCode}</span></p>
-            <h1 id="pkg-title">{v.title}</h1>
-            {v.destinations.length > 0 ? <p class="lede">{v.destinations.join(' · ')}</p> : null}
+            <p class="kicker"><span class="kicker-region">{v.region}</span><span class="sep" aria-hidden="true"> · </span><span class="kicker-code mono">{v.packageCode}</span></p>
+            <h1 id="pkg-title" class="rise">{v.title}</h1>
+            {v.destinations.length > 0 ? <p class="lede rise d1">{v.destinations.join(' · ')}</p> : null}
           </div>
           <p class="credit"><Credit photo={hero} /></p>
         </section>
       ) : (
         <section class="wrap plain-heading" aria-labelledby="pkg-title">
           <div class="message">
-            <p class="kicker"><span class="kicker-region">{v.region}</span><span class="sep" aria-hidden="true"> · </span><span class="kicker-code num">{v.packageCode}</span></p>
+            <p class="kicker"><span class="kicker-region">{v.region}</span><span class="sep" aria-hidden="true"> · </span><span class="kicker-code mono">{v.packageCode}</span></p>
             <h1 id="pkg-title">{v.title}</h1>
             {v.destinations.length > 0 ? <p class="lede">{v.destinations.join(' · ')}</p> : null}
           </div>
@@ -319,7 +380,7 @@ export function PackagePage({ v, origin, ctx, previewPackageId }: { v: PackageVe
             </div>
             <div class="glance-item">
               <dt>Package code</dt>
-              <dd class="glance-value num">{v.packageCode}</dd>
+              <dd class="glance-value mono">{v.packageCode}</dd>
             </div>
           </dl>
 
@@ -347,7 +408,7 @@ export function PackagePage({ v, origin, ctx, previewPackageId }: { v: PackageVe
             </figure>
           ) : null}
 
-          <section class="detail-section" aria-labelledby="included">
+          <section class="detail-section" aria-labelledby="included" data-reveal>
             <h2 id="included">Included and not included</h2>
             <div class="two-col">
               <div class="col-group">
@@ -383,7 +444,7 @@ export function PackagePage({ v, origin, ctx, previewPackageId }: { v: PackageVe
             </div>
           </section>
 
-          <section class="detail-section" aria-labelledby="stays">
+          <section class="detail-section" aria-labelledby="stays" data-reveal>
             <h2 id="stays">Where you stay</h2>
             <p class="stays">
               {stars ? `${stars} hotels throughout. ` : 'Hotel category not listed. '}
@@ -392,15 +453,17 @@ export function PackagePage({ v, origin, ctx, previewPackageId }: { v: PackageVe
           </section>
 
           {v.destinations.length ? (
-            <section class="route-map" aria-labelledby="route-map-title">
+            <section class="route-map" aria-labelledby="route-map-title" data-reveal>
               <h2 id="route-map-title">Explore the stops on a map</h2>
               <p class="hint">OpenStreetMap opens in a new tab. These links show places, not a promised travel route.</p>
 
-              <ol>
+              <ol class="stops">
                 {v.destinations.map((place) => (
                   <li>
                     <a href={mapPath(place)} target="_blank" rel="noopener noreferrer">
-                      {place} ↗
+                      <span class="micro">Stop</span>
+                      <strong>{place}</strong>
+                      <span class="stop-go" aria-hidden="true">↗</span>
                     </a>
                   </li>
                 ))}
@@ -408,7 +471,7 @@ export function PackagePage({ v, origin, ctx, previewPackageId }: { v: PackageVe
             </section>
           ) : null}
 
-          <section class="detail-section" aria-labelledby="prices">
+          <section class="detail-section" aria-labelledby="prices" data-reveal>
             <h2 id="prices">Prices by season</h2>
             {v.seasons.length === 0 ? (
               <p class="fineprint">Prices for this package are not published yet.</p>
@@ -472,9 +535,10 @@ export function MessagePage(props: { title: string; body: string; ctx: PageConte
     <Layout meta={meta}>
       <div class="wrap">
         <div class="message">
-          <h1>{props.title}</h1>
-          <p>{props.body}</p>
-          <a class="link" href={props.linkHref ?? '/#packages'}>{props.linkText ?? 'See all packages'}</a>
+          <p class="micro rise">{SITE_NAME}</p>
+          <h1 class="rise d1">{props.title}</h1>
+          <p class="rise d2">{props.body}</p>
+          <a class="ghost" href={props.linkHref ?? '/#packages'}>{props.linkText ?? 'See all packages'}</a>
         </div>
       </div>
     </Layout>

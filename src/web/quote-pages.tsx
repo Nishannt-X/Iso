@@ -39,5 +39,5 @@ export function StaffQuotePage({ ctx, viewer, row, error }: { ctx: PageContext; 
 }
 
 export function PublicQuotePage({ ctx, row }: { ctx: PageContext; row: StoredQuote }) {
-  return <Layout meta={{ title: `Quote ${row.id} | Kochi Tours`, description: `Fare estimate for ${row.snapshot.title}`, path: `/quote/${row.token}`, siteUrl: ctx.siteUrl, noindex: true }}><main class="section"><div class="wrap cms"><p class="eyebrow">Your journey, considered</p><QuoteSummary row={row} /><p><a class="btn secondary" href={`/quote/${row.token}/download`}>Download PDF</a></p><p class="hint">This demo quote does not confirm availability or a booking. Please ask a consultant to confirm the final fare and GST.</p></div></main></Layout>;
+  return <Layout meta={{ title: `Quote ${row.id} | Kochi Tours`, description: `Fare estimate for ${row.snapshot.title}`, path: `/quote/${row.token}`, siteUrl: ctx.siteUrl, noindex: true }}><section class="section"><div class="wrap quote"><p class="micro rise">Fare estimate · quote <span class="mono">#{row.id}</span></p><QuoteSummary row={row} /><p class="quote-actions"><a class="btn" href={`/quote/${row.token}/download`}>Download PDF</a></p><p class="hint">This demo quote does not confirm availability or a booking. Please ask a consultant to confirm the final fare and GST.</p></div></section></Layout>;
 }
