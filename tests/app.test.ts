@@ -260,6 +260,20 @@ describe('assets', () => {
     assert.equal(font.headers.get('content-type'), 'font/woff2');
   });
 
+  test('pages load the versioned script, which revalidates; photos and fonts keep their week-long cache', async () => {
+    const html = await text(await app.request('/'));
+    assert.match(html, /<script src="\/assets\/scripts\/app\.js\?v=2" defer/);
+    assert.ok(!html.includes('src="/assets/scripts/app.js"'), 'no unversioned script URL a browser may still hold for a week');
+    const js = await app.request('/assets/scripts/app.js?v=2');
+    assert.equal(js.status, 200);
+    assert.equal(js.headers.get('content-type'), 'application/javascript; charset=utf-8');
+    assert.equal(js.headers.get('cache-control'), 'no-cache');
+    assert.ok((await js.text()).includes('initStops'));
+    for (const path of ['/assets/images/alleppey-houseboat-900.jpg', '/assets/fonts/hanken-grotesk-latin.woff2']) {
+      assert.equal((await app.request(path)).headers.get('cache-control'), 'public, max-age=604800', path);
+    }
+  });
+
   test('refuses anything outside the allowed names (traversal, other types, missing files)', async () => {
     for (const path of ['/assets/images/..%2Fpackage.json', '/assets/images/nope-900.jpg', '/assets/images/alleppey-houseboat-2000.png', '/assets/other/x.jpg', '/assets/fonts/evil.woff2', '/assets/images/%2e%2e%2fapp.tsx']) {
       assert.equal((await app.request(path)).status, 404, path);

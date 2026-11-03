@@ -45,6 +45,12 @@ export function Picture(props: { photo: Photo; sizes: string; eager?: boolean; c
   );
 }
 
+/**
+ * The script URL carries a version so browsers drop copies cached for a week under the old header.
+ * The server now sends scripts with no-cache, so later releases do not need to bump this.
+ */
+const SCRIPT_URL = '/assets/scripts/app.js?v=2';
+
 const FAVICON =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b5a55'/%3E%3Cpath d='M9 24V8m0 9 9-9m-6 6 7 10' stroke='%23fff' stroke-width='2.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E";
 
@@ -73,7 +79,7 @@ export function Layout(props: { meta: PageMeta; overImage?: boolean; hasBook?: b
         <link rel="icon" href={FAVICON} />
         <link rel="preload" href="/assets/fonts/hanken-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
         <style dangerouslySetInnerHTML={{ __html: props.extraCss ? CSS + props.extraCss : CSS }} />
-        <script src="/assets/scripts/app.js" defer></script>
+        <script src={SCRIPT_URL} defer></script>
       </head>
       <body class={[props.nav === undefined ? 'pub' : '', props.hasBook ? 'has-book' : ''].filter(Boolean).join(' ') || undefined}>
         <a class="skip" href="#main">Skip to content</a>

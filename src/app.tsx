@@ -38,10 +38,12 @@ export interface AppOptions {
 
 const PUBLIC_DIR = fileURLToPath(new URL('./public/', import.meta.url));
 const SLUG = /^[a-z0-9][a-z0-9-]*$/;
-const ASSETS: Record<string, { pattern: RegExp; type: string }> = {
-  images: { pattern: PHOTO_FILE_PATTERN, type: 'image/jpeg' },
-  fonts: { pattern: /^hanken-grotesk-latin(-ext)?\.woff2$/, type: 'font/woff2' },
-  scripts: { pattern: /^[a-z0-9-]+\.js$/, type: 'application/javascript; charset=utf-8' },
+const WEEK = 'public, max-age=604800';
+// Scripts change with releases and their URL does not, so browsers must revalidate them on every visit.
+const ASSETS: Record<string, { pattern: RegExp; type: string; cache: string }> = {
+  images: { pattern: PHOTO_FILE_PATTERN, type: 'image/jpeg', cache: WEEK },
+  fonts: { pattern: /^hanken-grotesk-latin(-ext)?\.woff2$/, type: 'font/woff2', cache: WEEK },
+  scripts: { pattern: /^[a-z0-9-]+\.js$/, type: 'application/javascript; charset=utf-8', cache: 'no-cache' },
 };
 
 const doc = (el: { toString(): string }): string => `<!DOCTYPE html>${el.toString()}`;
@@ -158,7 +160,7 @@ export function createApp(db: DatabaseSync, options: AppOptions = {}): Hono {
     if (!rule || !rule.pattern.test(file)) return c.notFound();
     try {
       const body = await readFile(`${PUBLIC_DIR}${c.req.param('dir')}/${file}`);
-      return c.body(new Uint8Array(body), 200, { 'Content-Type': rule.type, 'Cache-Control': 'public, max-age=604800' });
+      return c.body(new Uint8Array(body), 200, { 'Content-Type': rule.type, 'Cache-Control': rule.cache });
     } catch {
       return c.notFound();
     }
