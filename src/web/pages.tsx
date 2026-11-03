@@ -18,27 +18,29 @@ export const destinationPath = (name: string): string => `/destinations/${destin
 const mapPath = (name: string): string => `https://www.openstreetmap.org/search?query=${encodeURIComponent(`${name}, India`)}`;
 
 const DEST_COORDS: Record<string, { x: number; y: number }> = {
-  kochi: { x: 140, y: 150 },
-  cochin: { x: 140, y: 150 },
-  munnar: { x: 300, y: 90 },
-  thekkady: { x: 440, y: 170 },
-  periyar: { x: 440, y: 170 },
-  alleppey: { x: 200, y: 240 },
-  alappuzha: { x: 200, y: 240 },
-  kumarakom: { x: 240, y: 210 },
-  kovalam: { x: 320, y: 290 },
-  madurai: { x: 500, y: 110 },
-  rameswaram: { x: 610, y: 180 },
-  kanyakumari: { x: 420, y: 300 },
-  wayanad: { x: 210, y: 60 },
-  goa: { x: 110, y: 70 },
+  kochi: { x: 230, y: 220 },
+  cochin: { x: 230, y: 220 },
+  munnar: { x: 430, y: 140 },
+  thekkady: { x: 470, y: 260 },
+  periyar: { x: 470, y: 260 },
+  alleppey: { x: 220, y: 310 },
+  alappuzha: { x: 220, y: 310 },
+  kumarakom: { x: 280, y: 280 },
+  kovalam: { x: 290, y: 420 },
+  trivandrum: { x: 290, y: 410 },
+  thiruvananthapuram: { x: 290, y: 410 },
+  madurai: { x: 620, y: 180 },
+  rameswaram: { x: 720, y: 250 },
+  kanyakumari: { x: 370, y: 460 },
+  wayanad: { x: 250, y: 80 },
+  goa: { x: 160, y: 70 },
 };
 
 function getDestCoord(dest: string, index: number, total: number): { x: number; y: number } {
   const key = dest.trim().toLowerCase();
   if (DEST_COORDS[key]) return DEST_COORDS[key];
-  const step = 450 / Math.max(total, 1);
-  return { x: 120 + index * step, y: 120 + (index % 2) * 70 };
+  const step = 500 / Math.max(total, 1);
+  return { x: 160 + index * step, y: 160 + (index % 2) * 80 };
 }
 
 function generateRouteSvgPath(destinations: string[]): string {
@@ -444,43 +446,87 @@ export function PackagePage({ v, origin, ctx, previewPackageId }: { v: PackageVe
 
           {v.destinations.length ? (
             <section class="route-map" aria-labelledby="route-map-title">
-              <h2 id="route-map-title">Explore the stops on a map</h2>
-              <p class="hint">OpenStreetMap opens in a new tab. These links show places, not a promised travel route.</p>
+              <div class="route-map-header">
+                <div>
+                  <span class="route-kicker">Interactive Geographic Map</span>
+                  <h2 id="route-map-title">Explore the stops on a map</h2>
+                </div>
+                <div class="route-stats-pill">
+                  <span>{v.destinations.length} Key Stops</span>
+                  <span class="sep">·</span>
+                  <span>{v.days} Days Itinerary</span>
+                </div>
+              </div>
+              <p class="hint">Click any stop on the map or timeline to view scenic transfers, highlights, and jump straight to that day's itinerary.</p>
 
-              <div class="route-map-visual">
+              <div class="journey-timeline-bar" role="tablist" aria-label="Journey stops">
+                {v.destinations.map((place, idx) => (
+                  <button type="button" class={`timeline-step${idx === 0 ? ' is-active' : ''}`} data-dest={place} data-index={idx} role="tab">
+                    <span class="step-num">{idx + 1}</span>
+                    <span class="step-label">{place}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div class="route-explorer-layout">
                 <div class="map-viewport">
-                  <svg class="journey-svg-map" viewBox="0 0 740 380" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label={`Route map illustration for ${v.title}`}>
-                    <path d="M 60 20 Q 90 120 120 220 T 260 360" stroke="var(--line)" stroke-width="3" stroke-dasharray="4 6" opacity="0.6" />
-                    <path class="route-path-track" d={generateRouteSvgPath(v.destinations)} stroke="var(--copper)" stroke-width="3" stroke-linecap="round" stroke-dasharray="6 6" />
+                  <svg class="journey-svg-map" viewBox="0 0 800 500" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label={`Route map illustration for ${v.title}`}>
+                    <rect width="800" height="500" fill="#e8f3f6" />
+                    <text x="65" y="270" fill="#9dbfc8" font-size="13" font-weight="600" letter-spacing="3" transform="rotate(-75 65 270)">ARABIAN SEA</text>
+                    <text x="130" y="440" fill="#9dbfc8" font-size="11" font-weight="500" letter-spacing="2">Laccadive Sea</text>
+
+                    <path d="M 120 0 L 800 0 L 800 500 L 370 500 C 350 480 300 450 280 420 C 250 370 210 330 220 300 C 225 280 240 250 235 220 C 230 190 180 150 160 110 C 145 80 140 40 120 0 Z" fill="#f8f5ee" stroke="#ded8cc" stroke-width="1.5" />
+
+                    <path d="M 380 50 Q 420 120 450 190 Q 470 260 460 320 Q 430 380 370 440 Q 340 390 390 320 Q 400 250 370 180 Q 340 120 380 50 Z" fill="#e2ede6" opacity="0.85" />
+                    <text x="495" y="90" fill="#8aa89b" font-size="11" font-weight="600" letter-spacing="1.5" transform="rotate(35 495 90)">WESTERN GHATS</text>
+
+                    <path d="M 235 240 C 248 265 262 285 252 315 C 242 335 225 345 220 325 C 225 295 230 265 235 240 Z" fill="#cde5ea" stroke="#b2d7de" stroke-width="1.2" />
+                    <text x="268" y="285" fill="#7ba3ab" font-size="10" font-weight="500">Vembanad Lake</text>
+
+                    <path d="M 230 220 Q 330 180 430 140" stroke="#d5cebf" stroke-width="2" stroke-dasharray="3 3" />
+                    <path d="M 430 140 Q 450 200 470 260" stroke="#d5cebf" stroke-width="2" stroke-dasharray="3 3" />
+                    <path d="M 470 260 Q 350 290 220 310" stroke="#d5cebf" stroke-width="2" stroke-dasharray="3 3" />
+                    <path d="M 220 310 Q 225 260 230 220" stroke="#d5cebf" stroke-width="2" stroke-dasharray="3 3" />
+
+                    <path class="route-track-glow" d={generateRouteSvgPath(v.destinations)} stroke="rgba(164, 92, 50, 0.25)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" />
+                    <path class="active-route-track" d={generateRouteSvgPath(v.destinations)} stroke="var(--copper)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 6" />
+
                     {v.destinations.map((place, idx) => {
                       const pt = getDestCoord(place, idx, v.destinations.length);
                       return (
-                        <g class="waypoint-pin" data-dest={place} tabindex={0} role="button" aria-label={`View details for ${place}`}>
-                          <circle cx={pt.x} cy={pt.y} r="18" fill="var(--surface)" stroke="var(--forest)" stroke-width="2.5" class="pin-ring" />
-                          <circle cx={pt.x} cy={pt.y} r="6" fill="var(--copper)" class="pin-core" />
-                          <text x={pt.x} y={pt.y + 30} text-anchor="middle" class="pin-label">{place}</text>
+                        <g class={`waypoint-pin${idx === 0 ? ' is-active' : ''}`} data-dest={place} data-index={idx} tabindex={0} role="button" aria-label={`Stop ${idx + 1}: ${place}`}>
+                          <circle cx={pt.x} cy={pt.y} r="22" class="node-halo" fill="rgba(164,92,50,0.18)" />
+                          <circle cx={pt.x} cy={pt.y} r="14" class="node-bg" fill="var(--forest)" stroke="#ffffff" stroke-width="2.5" />
+                          <text x={pt.x} y={pt.y + 4.5} text-anchor="middle" class="node-num" fill="#ffffff" font-size="11" font-weight="700">{idx + 1}</text>
+                          <rect x={pt.x - 44} y={pt.y + 20} width="88" height="22" rx="4" class="node-label-bg" fill="rgba(255,255,255,0.95)" stroke="var(--line)" />
+                          <text x={pt.x} y={pt.y + 35} text-anchor="middle" class="node-label-text" fill="var(--ink)" font-size="11" font-weight="600">{place}</text>
                         </g>
                       );
                     })}
                   </svg>
+                </div>
 
-                  <div class="waypoint-card" aria-live="polite">
-                    <h4 class="card-dest-name">Select a destination</h4>
-                    <p class="card-dest-info">Click any waypoint pin on the route map above to preview highlights and jump to its itinerary day.</p>
-                    <a href="#" target="_blank" rel="noopener noreferrer" class="card-dest-link">View on OpenStreetMap ↗</a>
+                <div class="stop-inspector-card" id="stop-inspector" aria-live="polite">
+                  <div class="inspector-media">
+                    <img class="inspector-img" src="/assets/images/munnar-tea-900.jpg" alt="Destination landscape preview" />
+                    <span class="inspector-badge">Stop 1 of {v.destinations.length}</span>
+                  </div>
+                  <div class="inspector-body">
+                    <span class="inspector-region">Kerala High Range</span>
+                    <h3 class="inspector-title">{v.destinations[0]}</h3>
+                    <p class="inspector-drive">Scenic transfer &amp; drive details</p>
+                    <div class="inspector-highlights">
+                      <strong class="highlights-title">Key Highlights:</strong>
+                      <ul class="highlights-list">
+                        <li>Scenic landscape and curated sightseeing</li>
+                      </ul>
+                    </div>
+                    <div class="inspector-footer">
+                      <button type="button" class="btn btn-jump-day" data-dest={v.destinations[0]}>View Itinerary Day Details ↓</button>
+                    </div>
                   </div>
                 </div>
               </div>
-
-              <ol>
-                {v.destinations.map((place) => (
-                  <li>
-                    <a href={mapPath(place)} target="_blank" rel="noopener noreferrer">
-                      {place} ↗
-                    </a>
-                  </li>
-                ))}
-              </ol>
             </section>
           ) : null}
 
