@@ -22,6 +22,14 @@
 
 # Decisions (newest first)
 
+## 2026-11-03 · Public pages adopt a FloodFlow-style interaction layer
+- **Status:** accepted
+- **Context:** The owner asked for the interaction and styling language of their FloodFlow project on every public page, keeping the Kochi palette and font, with TourHQ as a secondary skeleton reference. This overrides the earlier "refused patterns" (cards, gradients, entrance motion) in `docs/DESIGN_DECISIONS.md`.
+- **Options considered:** A) do nothing; B) copy FloodFlow wholesale (dark ground, cyan, React/Framer); C) port only its grammar into the existing CSS and server-rendered JSX.
+- **Decision:** C. No new dependency, font or asset. Public-only rules are scoped under `body.pub` so staff screens are unchanged. Removed the client-side estimator (invented GST, child and solo rates), the slide-over form (wrong field names, unsupported reply promise), the invented SVG route map and the JS-only filters.
+- **Consequences:** Motion and reveal depend on `prefers-reduced-motion` and JavaScript being available; without either, all content is shown at rest. Visitors can no longer estimate a party total on the package page; the season price table remains the source.
+- **Decided by:** Human owner (direction) and agent (Builder) · **Related:** `feat/floodflow-public-style`
+
 ## 2026-11-02 · Landing redesign: journey ticket and timetable, themed from tags, planner deferred
 - **Status:** accepted
 - **Context:** the owner found v1 too basic and asked for an editorial, immersive landing page. Four independent grillers reviewed the v2 plan (UX, scope, security, break-it cases); GPT-6 Sol (review A) ruled on each finding against the repo before any was applied.
